@@ -314,7 +314,7 @@ function updateTabs() {
 function setMode(m) {
   if (m === 'practice' && PRACTICE.length === 0) return;
   mode = m;
-  deck = [...(mode === 'daily' ? DAILY : PRACTICE)];
+  deck = shuffle([...(mode === 'daily' ? DAILY : PRACTICE)]);
   idx = 0; revealed = false; missedWords = new Set();
   updateTabs();
   hideDone();
@@ -401,7 +401,7 @@ function showDone() {
 
 function doRestart(doShuffle) {
   const src = mode === 'daily' ? DAILY : PRACTICE;
-  deck = doShuffle ? shuffle(src) : [...src];
+  deck = shuffle([...src]);
   idx = 0; revealed = false; missedWords = new Set();
   hideDone(); resetFlagState();
   document.getElementById('cardWrap').classList.remove('hide');
@@ -425,7 +425,12 @@ function flagForTomorrow() {
   setTimeout(() => document.getElementById('flagConfirm').classList.add('show'), 300);
 }
 
-document.getElementById('cardWrap').addEventListener('click', () => { if (!revealed) reveal(); });
+document.addEventListener('click', e => {
+  if (e.target.closest('button') || e.target.closest('.tab-bar')) return;
+  if (document.getElementById('doneScreen').classList.contains('show')) return;
+  if (document.getElementById('emptyState').classList.contains('show')) return;
+  if (!revealed) reveal();
+});
 document.addEventListener('keydown', e => {
   if (document.getElementById('doneScreen').classList.contains('show')) return;
   if (document.getElementById('emptyState').classList.contains('show')) return;
@@ -435,7 +440,7 @@ document.addEventListener('keydown', e => {
 });
 
 updateTabs();
-if (DAILY.length > 0) render(); else showEmpty();
+if (DAILY.length > 0) { deck = shuffle([...DAILY]); render(); } else showEmpty();
 </script>
 </body>
 </html>
