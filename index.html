@@ -284,7 +284,9 @@ const PRACTICE = [
 ];
 
 let mode = 'daily';
-let deck = [...DAILY];
+const dailyDeck = shuffle([...DAILY]);
+const practiceDeck = shuffle([...PRACTICE]);
+let deck = [...dailyDeck];
 let idx = 0, revealed = false, missedWords = new Set();
 
 function wordCount(arr) { return new Set(arr.map(s => s.w)).size; }
@@ -314,7 +316,7 @@ function updateTabs() {
 function setMode(m) {
   if (m === 'practice' && PRACTICE.length === 0) return;
   mode = m;
-  deck = shuffle([...(mode === 'daily' ? DAILY : PRACTICE)]);
+  deck = [...(mode === 'daily' ? dailyDeck : practiceDeck)];
   idx = 0; revealed = false; missedWords = new Set();
   updateTabs();
   hideDone();
@@ -440,7 +442,7 @@ document.addEventListener('keydown', e => {
 });
 
 updateTabs();
-if (DAILY.length > 0) { deck = shuffle([...DAILY]); render(); } else showEmpty();
+if (DAILY.length > 0) render(); else showEmpty();
 </script>
 </body>
 </html>
