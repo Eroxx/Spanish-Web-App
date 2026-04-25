@@ -305,7 +305,15 @@ async function getVault() {
   return _vault;
 }
 async function saveState() {
-  const state = { fp: fp(), daily: dailyDeck, practice: practiceDeck, mode, idx, missed: [...missedWords] };
+  // Sync current deck before saving
+  deckState[mode].idx = idx;
+  deckState[mode].missed = new Set(missedWords);
+  const state = { fp: fp(), daily: dailyDeck, practice: practiceDeck, mode,
+    deckState: {
+      daily: { idx: deckState.daily.idx, missed: [...deckState.daily.missed] },
+      practice: { idx: deckState.practice.idx, missed: [...deckState.practice.missed] }
+    }
+  };
   if (window.cowork) {
     try {
       const vault = await getVault(); if (!vault) return;
@@ -340,17 +348,30 @@ async function loadState() {
 
 let dailyDeck, practiceDeck, mode, idx, missedWords, deck;
 let revealed = false;
+// Per-deck progress: each deck remembers its own position and missed words
+const deckState = { daily: { idx: 0, missed: new Set() }, practice: { idx: 0, missed: new Set() } };
 
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveState(); });
 
 async function init() {
   const saved = await loadState();
   if (saved) {
-    dailyDeck = saved.daily; practiceDeck = saved.practice;
-    mode = saved.mode; idx = saved.idx; missedWords = new Set(saved.missed);
+    dailyDeck = saved.daily; practiceDeck = saved.practice; mode = saved.mode;
+    if (saved.deckState) {
+      deckState.daily.idx = saved.deckState.daily.idx || 0;
+      deckState.daily.missed = new Set(saved.deckState.daily.missed || []);
+      deckState.practice.idx = saved.deckState.practice.idx || 0;
+      deckState.practice.missed = new Set(saved.deckState.practice.missed || []);
+    } else {
+      deckState[mode].idx = saved.idx || 0;
+      deckState[mode].missed = new Set(saved.missed || []);
+    }
+    idx = deckState[mode].idx; missedWords = new Set(deckState[mode].missed);
   } else {
     dailyDeck = shuffle([...DAILY]); practiceDeck = shuffle([...PRACTICE]);
     mode = 'daily'; idx = 0; missedWords = new Set();
+    deckState.daily = { idx: 0, missed: new Set() };
+    deckState.practice = { idx: 0, missed: new Set() };
   }
   deck = [...(mode === 'daily' ? dailyDeck : practiceDeck)];
   revealed = false;
@@ -382,9 +403,15 @@ function updateTabs() {
 
 function setMode(m) {
   if (m === 'practice' && PRACTICE.length === 0) return;
+  // Save current deck's progress before switching
+  deckState[mode].idx = idx;
+  deckState[mode].missed = new Set(missedWords);
   mode = m;
   deck = [...(mode === 'daily' ? dailyDeck : practiceDeck)];
-  idx = 0; revealed = false; missedWords = new Set();
+  // Restore target deck's progress
+  idx = deckState[mode].idx;
+  missedWords = new Set(deckState[mode].missed);
+  revealed = false;
   updateTabs();
   hideDone();
   resetFlagState();
@@ -444,10 +471,15 @@ function reveal() {
 function handleAction(wasMissed) {
   if (wasMissed) {
     missedWords.add(deck[idx].w);
+    deckState[mode].missed = new Set(missedWords);
     document.getElementById('wordLabel').classList.add('missed-flash');
   }
   document.getElementById('actionBtns').classList.remove('show');
-  setTimeout(() => { idx++; if (idx >= deck.length) { clearState(); showDone(); } else render(); }, wasMissed ? 350 : 120);
+  setTimeout(() => {
+    idx++;
+    deckState[mode].idx = idx;
+    if (idx >= deck.length) { clearState(); showDone(); } else render();
+  }, wasMissed ? 350 : 120);
 }
 
 function showDone() {
@@ -472,6 +504,7 @@ function doRestart(doShuffle) {
   const src = mode === 'daily' ? dailyDeck : practiceDeck;
   deck = shuffle([...src]);
   idx = 0; revealed = false; missedWords = new Set();
+  deckState[mode] = { idx: 0, missed: new Set() };
   clearState(); hideDone(); resetFlagState();
   document.getElementById('cardWrap').classList.remove('hide');
   document.getElementById('keyHint').style.display = '';
