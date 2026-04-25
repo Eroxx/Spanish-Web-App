@@ -285,11 +285,37 @@ const PRACTICE = [
   {"s":"A veces la **tristeza** pasa sola.","e":"Sometimes sadness goes away on its own.","w":"tristeza"}
 ];
 
-let mode = 'daily';
-const dailyDeck = shuffle([...DAILY]);
-const practiceDeck = shuffle([...PRACTICE]);
-let deck = [...dailyDeck];
-let idx = 0, revealed = false, missedWords = new Set();
+// --- Persistence ---
+function fingerprint() {
+  return DAILY.length + '|' + (DAILY[0]?.w||'') + '|' + PRACTICE.length + '|' + (PRACTICE[0]?.w||'');
+}
+function saveState() {
+  try {
+    localStorage.setItem('spanish-state', JSON.stringify({
+      fp: fingerprint(), daily: dailyDeck, practice: practiceDeck,
+      mode, idx, missed: [...missedWords]
+    }));
+  } catch(e) {}
+}
+function clearState() { try { localStorage.removeItem('spanish-state'); } catch(e) {} }
+function loadSaved() {
+  try {
+    const s = JSON.parse(localStorage.getItem('spanish-state'));
+    return (s && s.fp === fingerprint()) ? s : null;
+  } catch(e) { return null; }
+}
+
+let dailyDeck, practiceDeck, mode, idx, missedWords;
+const saved = loadSaved();
+if (saved) {
+  dailyDeck = saved.daily; practiceDeck = saved.practice;
+  mode = saved.mode; idx = saved.idx; missedWords = new Set(saved.missed);
+} else {
+  dailyDeck = shuffle([...DAILY]); practiceDeck = shuffle([...PRACTICE]);
+  mode = 'daily'; idx = 0; missedWords = new Set();
+}
+let deck = [...(mode === 'daily' ? dailyDeck : practiceDeck)];
+let revealed = false;
 
 function wordCount(arr) { return new Set(arr.map(s => s.w)).size; }
 
@@ -355,6 +381,7 @@ function resetFlagState() {
 function bold(str) { return str.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); }
 
 function render() {
+  saveState();
   const s = deck[idx];
   document.getElementById('bar').style.width = (idx / deck.length * 100).toFixed(1) + '%';
   document.getElementById('counter').textContent = (idx + 1) + ' / ' + deck.length;
@@ -382,7 +409,7 @@ function handleAction(wasMissed) {
     document.getElementById('wordLabel').classList.add('missed-flash');
   }
   document.getElementById('actionBtns').classList.remove('show');
-  setTimeout(() => { idx++; if (idx >= deck.length) showDone(); else render(); }, wasMissed ? 350 : 120);
+  setTimeout(() => { idx++; if (idx >= deck.length) { clearState(); showDone(); } else render(); }, wasMissed ? 350 : 120);
 }
 
 function showDone() {
@@ -404,10 +431,10 @@ function showDone() {
 }
 
 function doRestart(doShuffle) {
-  const src = mode === 'daily' ? DAILY : PRACTICE;
+  const src = mode === 'daily' ? dailyDeck : practiceDeck;
   deck = shuffle([...src]);
   idx = 0; revealed = false; missedWords = new Set();
-  hideDone(); resetFlagState();
+  clearState(); hideDone(); resetFlagState();
   document.getElementById('cardWrap').classList.remove('hide');
   document.getElementById('keyHint').style.display = '';
   document.getElementById('actionBtns').classList.remove('show');
