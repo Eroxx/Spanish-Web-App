@@ -43,7 +43,7 @@
   .key-hint .k { font-size: 11px; color: rgba(255,255,255,0.2); letter-spacing: 0.8px; text-transform: uppercase; }
   .key-hint .k span { display: inline-block; border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; padding: 2px 7px; margin-right: 5px; font-size: 10px; color: rgba(255,255,255,0.35); }
   .key-hint .k.missed span { border-color: rgba(251,146,60,0.4); color: #fb923c; }
-  @media (hover: none) and (pointer: coarse) { .key-hint { display: none; } }
+  @media (hover: none) and (pointer: coarse) { .key-hint { font-size: 10px; gap: 14px; } }
   .done { display: none; flex-direction: column; align-items: center; gap: 10px; text-align: center; max-width: 420px; }
   .done.show { display: flex; }
   .done-check { width: 56px; height: 56px; border-radius: 50%; background: rgba(56,189,248,0.12); border: 1.5px solid rgba(56,189,248,0.3); display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 8px; color: #38bdf8; }
@@ -96,6 +96,7 @@
 <div class="key-hint" id="keyHint">
   <div class="k"><span>space</span> got it</div>
   <div class="k missed"><span>m</span> missed</div>
+  <div class="k"><span>tab</span> switch tab</div>
 </div>
 <div class="done" id="doneScreen">
   <div class="done-check">✓</div>
@@ -360,7 +361,7 @@ function render() {
   const tr = document.getElementById('translationEl');
   tr.textContent = s.e; tr.classList.remove('show');
   document.getElementById('actionBtns').classList.remove('show');
-  document.getElementById('keyHint').style.opacity = '0.4';
+  document.getElementById('keyHint').style.opacity = '1';
   revealed = false;
 }
 
@@ -430,6 +431,7 @@ document.addEventListener('keydown', e => {
   if (document.getElementById('emptyState').classList.contains('show')) return;
   if (e.code === 'Space') { e.preventDefault(); if (!revealed) reveal(); else handleAction(false); }
   if (e.key === 'm' || e.key === 'M') { if (!revealed) reveal(); else handleAction(true); }
+  if (e.key === 'Tab') { e.preventDefault(); setMode(mode === 'daily' ? 'practice' : 'daily'); }
 });
 
 updateTabs();
