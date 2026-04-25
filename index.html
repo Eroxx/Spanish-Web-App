@@ -285,37 +285,76 @@ const PRACTICE = [
   {"s":"A veces la **tristeza** pasa sola.","e":"Sometimes sadness goes away on its own.","w":"tristeza"}
 ];
 
-// --- Persistence ---
-function fingerprint() {
-  return DAILY.length + '|' + (DAILY[0]?.w||'') + '|' + PRACTICE.length + '|' + (PRACTICE[0]?.w||'');
+// --- Persistence (artifact → vault file; web app → localStorage) ---
+function fp() {
+  return DAILY.length+'|'+(DAILY[0]?.w||'')+'|'+PRACTICE.length+'|'+(PRACTICE[0]?.w||'');
 }
-function saveState() {
-  try {
-    localStorage.setItem('spanish-state', JSON.stringify({
-      fp: fingerprint(), daily: dailyDeck, practice: practiceDeck,
-      mode, idx, missed: [...missedWords]
-    }));
-  } catch(e) {}
+function toB64(s) {
+  return btoa(encodeURIComponent(s).replace(/%([0-9A-F]{2})/g, (_, p) => String.fromCharCode(parseInt(p, 16))));
 }
-function clearState() { try { localStorage.removeItem('spanish-state'); } catch(e) {} }
-function loadSaved() {
+const STATE_KEY = 'spanish-state';
+const STATE_FILE = '_06 Donkey Work/Temp Donkey Files/spanish-sentences-state.json';
+let _vault = null;
+async function getVault() {
+  if (_vault !== null) return _vault;
   try {
-    const s = JSON.parse(localStorage.getItem('spanish-state'));
-    return (s && s.fp === fingerprint()) ? s : null;
-  } catch(e) { return null; }
+    const r = await window.cowork.callMcpTool('mcp__workspace__bash',
+      { command: 'find /sessions -maxdepth 3 -name "Main Brain" -type d 2>/dev/null | head -1' });
+    _vault = (r.content?.[0]?.text || r.output || '').trim();
+  } catch(e) { _vault = ''; }
+  return _vault;
+}
+async function saveState() {
+  const state = { fp: fp(), daily: dailyDeck, practice: practiceDeck, mode, idx, missed: [...missedWords] };
+  if (window.cowork) {
+    try {
+      const vault = await getVault(); if (!vault) return;
+      const b64 = toB64(JSON.stringify(state));
+      await window.cowork.callMcpTool('mcp__workspace__bash', { command:
+        `python3 -c "import base64,os; p='${vault}/${STATE_FILE}'; os.makedirs(os.path.dirname(p),exist_ok=True); open(p,'wb').write(base64.b64decode('${b64}'))"` });
+    } catch(e) {}
+  } else {
+    try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch(e) {}
+  }
+}
+async function clearState() {
+  if (window.cowork) {
+    try { const vault = await getVault(); if (vault) await window.cowork.callMcpTool('mcp__workspace__bash', { command: `rm -f '${vault}/${STATE_FILE}'` }); } catch(e) {}
+  } else { try { localStorage.removeItem(STATE_KEY); } catch(e) {} }
+}
+async function loadState() {
+  if (window.cowork) {
+    try {
+      const vault = await getVault(); if (!vault) return null;
+      const r = await window.cowork.callMcpTool('mcp__workspace__bash',
+        { command: `cat '${vault}/${STATE_FILE}' 2>/dev/null || echo ''` });
+      const text = (r.content?.[0]?.text || r.output || '').trim();
+      if (!text) return null;
+      const s = JSON.parse(text);
+      return s?.fp === fp() ? s : null;
+    } catch(e) { return null; }
+  } else {
+    try { const s = JSON.parse(localStorage.getItem(STATE_KEY)); return s?.fp === fp() ? s : null; } catch(e) { return null; }
+  }
 }
 
-let dailyDeck, practiceDeck, mode, idx, missedWords;
-const saved = loadSaved();
-if (saved) {
-  dailyDeck = saved.daily; practiceDeck = saved.practice;
-  mode = saved.mode; idx = saved.idx; missedWords = new Set(saved.missed);
-} else {
-  dailyDeck = shuffle([...DAILY]); practiceDeck = shuffle([...PRACTICE]);
-  mode = 'daily'; idx = 0; missedWords = new Set();
-}
-let deck = [...(mode === 'daily' ? dailyDeck : practiceDeck)];
+let dailyDeck, practiceDeck, mode, idx, missedWords, deck;
 let revealed = false;
+
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveState(); });
+
+async function init() {
+  const saved = await loadState();
+  if (saved) {
+    dailyDeck = saved.daily; practiceDeck = saved.practice;
+    mode = saved.mode; idx = saved.idx; missedWords = new Set(saved.missed);
+  } else {
+    dailyDeck = shuffle([...DAILY]); practiceDeck = shuffle([...PRACTICE]);
+    mode = 'daily'; idx = 0; missedWords = new Set();
+  }
+  deck = [...(mode === 'daily' ? dailyDeck : practiceDeck)];
+  revealed = false;
+}
 
 function wordCount(arr) { return new Set(arr.map(s => s.w)).size; }
 
@@ -381,7 +420,6 @@ function resetFlagState() {
 function bold(str) { return str.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); }
 
 function render() {
-  saveState();
   const s = deck[idx];
   document.getElementById('bar').style.width = (idx / deck.length * 100).toFixed(1) + '%';
   document.getElementById('counter').textContent = (idx + 1) + ' / ' + deck.length;
@@ -470,8 +508,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Tab') { e.preventDefault(); setMode(mode === 'daily' ? 'practice' : 'daily'); }
 });
 
-updateTabs();
-if (DAILY.length > 0) render(); else showEmpty();
+init().then(() => { updateTabs(); if (deck.length > 0) render(); else showEmpty(); });
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
