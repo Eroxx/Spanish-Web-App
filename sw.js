@@ -1,4 +1,4 @@
-const CACHE = "spanish-sentences-v1";
+const CACHE = "spanish-sentences-v2";
 
 self.addEventListener("install", () => self.skipWaiting());
 
