@@ -445,6 +445,12 @@ document.addEventListener('keydown', e => {
 
 updateTabs();
 if (DAILY.length > 0) render(); else showEmpty();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/Spanish-Web-App/sw.js');
+  });
+}
 </script>
 </body>
 </html>
