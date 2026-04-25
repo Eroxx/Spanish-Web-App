@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spanish Sentences</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f172a; color: #e2e8f0;
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 56px 24px 80px; user-select: none;
+  }
+  .progress-track { position: fixed; top: 0; left: 0; right: 0; height: 3px; background: rgba(255,255,255,0.07); }
+  .progress-fill { height: 100%; background: #38bdf8; transition: width 0.4s ease; }
+  .tab-bar { position: fixed; top: 9px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; z-index: 10; }
+  .tab-btn { padding: 3px 13px; border-radius: 20px; font-size: 10px; font-weight: 700; letter-spacing: 0.7px; cursor: pointer; border: 1.5px solid; transition: all 0.18s; text-transform: uppercase; white-space: nowrap; background: transparent; }
+  #tabDaily { border-color: rgba(56,189,248,0.4); color: #38bdf8; background: rgba(56,189,248,0.12); }
+  #tabDaily.dim { border-color: rgba(255,255,255,0.12); color: rgba(255,255,255,0.22); background: transparent; }
+  #tabPractice { border-color: rgba(251,146,60,0.4); color: #fb923c; background: rgba(251,146,60,0.12); }
+  #tabPractice.dim { border-color: rgba(255,255,255,0.12); color: rgba(255,255,255,0.22); background: transparent; }
+  #tabPractice.no-cards { opacity: 0.3; cursor: default; }
+  .counter { position: fixed; top: 38px; right: 18px; font-size: 12px; color: rgba(255,255,255,0.3); font-variant-numeric: tabular-nums; }
+  .meta-row { position: fixed; top: 38px; left: 18px; font-size: 11px; color: rgba(255,255,255,0.2); }
+  .word-label { font-size: 11px; text-transform: uppercase; letter-spacing: 2.5px; color: rgba(255,255,255,0.28); margin-bottom: 30px; font-weight: 500; transition: color 0.2s; }
+  .word-label.missed-flash { color: #fb923c; }
+  .spanish { font-size: 28px; font-weight: 500; line-height: 1.55; text-align: center; max-width: 580px; margin-bottom: 32px; color: #f1f5f9; }
+  .spanish strong { color: #38bdf8; font-weight: 700; }
+  .translation { font-size: 17px; color: #94a3b8; text-align: center; max-width: 500px; line-height: 1.6; font-style: italic; opacity: 0; transform: translateY(8px); transition: opacity 0.22s ease, transform 0.22s ease; min-height: 1.6em; }
+  .translation.show { opacity: 1; transform: translateY(0); }
+  .action-btns { display: flex; gap: 12px; margin-top: 32px; width: 100%; max-width: 400px; opacity: 0; transform: translateY(8px); transition: opacity 0.22s ease, transform 0.22s ease; pointer-events: none; }
+  .action-btns.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .btn-action { flex: 1; padding: 16px 12px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; letter-spacing: 0.2px; border: 1.5px solid; transition: background 0.15s, transform 0.1s; -webkit-tap-highlight-color: transparent; }
+  .btn-action:active { transform: scale(0.97); }
+  .btn-gotit { background: rgba(56,189,248,0.1); border-color: rgba(56,189,248,0.3); color: #38bdf8; }
+  .btn-gotit:hover { background: rgba(56,189,248,0.18); }
+  .btn-missed { background: rgba(251,146,60,0.1); border-color: rgba(251,146,60,0.3); color: #fb923c; }
+  .btn-missed:hover { background: rgba(251,146,60,0.18); }
+  .key-hint { position: fixed; bottom: 28px; display: flex; gap: 20px; align-items: center; }
+  .key-hint .k { font-size: 11px; color: rgba(255,255,255,0.2); letter-spacing: 0.8px; text-transform: uppercase; }
+  .key-hint .k span { display: inline-block; border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; padding: 2px 7px; margin-right: 5px; font-size: 10px; color: rgba(255,255,255,0.35); }
+  .key-hint .k.missed span { border-color: rgba(251,146,60,0.4); color: #fb923c; }
+  @media (hover: none) and (pointer: coarse) { .key-hint { display: none; } }
+  .done { display: none; flex-direction: column; align-items: center; gap: 10px; text-align: center; max-width: 420px; }
+  .done.show { display: flex; }
+  .done-check { width: 56px; height: 56px; border-radius: 50%; background: rgba(56,189,248,0.12); border: 1.5px solid rgba(56,189,248,0.3); display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 8px; color: #38bdf8; }
+  .done h2 { font-size: 20px; font-weight: 600; color: #f1f5f9; }
+  .done .stats { font-size: 13px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+  .flagged-section { margin-top: 18px; width: 100%; }
+  .flagged-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #fb923c; opacity: 0.7; margin-bottom: 10px; }
+  .flagged-words { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; margin-bottom: 16px; }
+  .flagged-word { padding: 4px 12px; border-radius: 20px; background: rgba(251,146,60,0.1); border: 1px solid rgba(251,146,60,0.25); color: #fb923c; font-size: 13px; }
+  .done-btns { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; justify-content: center; }
+  .btn { padding: 10px 22px; border-radius: 9px; font-size: 14px; cursor: pointer; transition: background 0.15s; letter-spacing: 0.3px; }
+  .btn-flag { background: rgba(251,146,60,0.1); border: 1px solid rgba(251,146,60,0.25); color: #fb923c; }
+  .btn-flag:hover { background: rgba(251,146,60,0.18); }
+  .btn-flag:disabled { opacity: 0.4; cursor: default; }
+  .btn-again { background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.2); color: #38bdf8; }
+  .btn-again:hover { background: rgba(56,189,248,0.15); }
+  .btn-shuffle { background: rgba(148,163,184,0.07); border: 1px solid rgba(148,163,184,0.18); color: #94a3b8; }
+  .btn-shuffle:hover { background: rgba(148,163,184,0.14); }
+  .card-wrap { display: flex; flex-direction: column; align-items: center; width: 100%; cursor: pointer; }
+  .card-wrap.hide { display: none; }
+  .flag-confirm { font-size: 12px; color: #4ade80; margin-top: 8px; opacity: 0; transition: opacity 0.3s; }
+  .flag-confirm.show { opacity: 1; }
+  .empty-state { display: none; flex-direction: column; align-items: center; gap: 14px; text-align: center; max-width: 340px; }
+  .empty-state.show { display: flex; }
+  .empty-title { font-size: 16px; font-weight: 500; color: rgba(255,255,255,0.4); }
+  .empty-body { font-size: 13px; color: rgba(255,255,255,0.22); line-height: 1.7; }
+</style>
+</head>
+<body>
+<div class="progress-track"><div class="progress-fill" id="bar"></div></div>
+<div class="tab-bar">
+  <button id="tabDaily" class="tab-btn" onclick="setMode('daily')">Daily</button>
+  <button id="tabPractice" class="tab-btn" onclick="setMode('practice')">Needs Practice</button>
+</div>
+<div class="meta-row" id="meta"></div>
+<div class="counter" id="counter"></div>
+<div class="card-wrap" id="cardWrap">
+  <div class="word-label" id="wordLabel"></div>
+  <div class="spanish" id="spanishEl"></div>
+  <div class="translation" id="translationEl"></div>
+  <div class="action-btns" id="actionBtns">
+    <button class="btn-action btn-gotit" onclick="handleAction(false)">Got it ✓</button>
+    <button class="btn-action btn-missed" onclick="handleAction(true)">Missed ✗</button>
+  </div>
+</div>
+<div class="empty-state" id="emptyState">
+  <div class="empty-title">No cards yet</div>
+  <div class="empty-body">Cards you mark Again at least twice this week will appear here.<br><br>Say "practice my sentences" with Anki open to refresh.</div>
+</div>
+<div class="key-hint" id="keyHint">
+  <div class="k"><span>space</span> got it</div>
+  <div class="k missed"><span>m</span> missed</div>
+</div>
+<div class="done" id="doneScreen">
+  <div class="done-check">✓</div>
+  <h2>All done</h2>
+  <p class="stats" id="doneStats"></p>
+  <div class="flagged-section" id="flaggedSection" style="display:none">
+    <div class="flagged-label">Missed words</div>
+    <div class="flagged-words" id="flaggedWords"></div>
+    <button class="btn btn-flag" id="flagBtn" onclick="flagForTomorrow()">Flag for tomorrow</button>
+    <div class="flag-confirm" id="flagConfirm">Saved to vault — they'll be first in tomorrow's batch.</div>
+  </div>
+  <div class="done-btns">
+    <button class="btn btn-again" onclick="doRestart(false)">Go again</button>
+    <button class="btn btn-shuffle" onclick="doRestart(true)">Shuffle</button>
+  </div>
+</div>
+<script>
+const SOURCE_IDS = [1718851335527,1718851335528,1718851335622,1718851335629,1718851335630,1718851335645,1719802579243,1719802579615,1719802579924,1720214542730,1722131052062,1722132253766,1722195225183,1722218330240,1722218331651,1722469713771,1722469713977,1722712578584,1722712581202,1722712582950];
+
+const DAILY = [
+  {"s":"El **caballo** come hierba en el campo.","e":"The horse eats grass in the field.","w":"caballo"},
+  {"s":"Ella tiene el **cabello** muy largo.","e":"She has very long hair.","w":"cabello"},
+  {"s":"Este es mi **lugar** favorito en la ciudad.","e":"This is my favorite place in the city.","w":"lugar"},
+  {"s":"Hoy me siento **mejor** que ayer.","e":"Today I feel better than yesterday.","w":"mejor"},
+  {"s":"Mi hermana es **menor** que yo.","e":"My sister is younger than me.","w":"menor"},
+  {"s":"Ayer **nevó** mucho en las montañas.","e":"Yesterday it snowed a lot in the mountains.","w":"nevar"},
+  {"s":"Mis padres me **criaron** con mucho amor.","e":"My parents raised me with a lot of love.","w":"criar"},
+  {"s":"Me gusta leer un **cuento** antes de dormir.","e":"I like to read a story before sleeping.","w":"cuento"},
+  {"s":"Cruzamos el **puente** para llegar al otro lado.","e":"We crossed the bridge to reach the other side.","w":"puente"},
+  {"s":"Puse una **cebolla** en la sopa.","e":"I put an onion in the soup.","w":"cebolla"},
+  {"s":"El **piso** está mojado, ten cuidado.","e":"The floor is wet, be careful.","w":"piso"},
+  {"s":"Me lavé las **manos** antes de comer.","e":"I washed my hands before eating.","w":"mano"},
+  {"s":"Me senté en el **sillón** para descansar.","e":"I sat in the armchair to rest.","w":"sillón"},
+  {"s":"Mi gato es muy **flaco** porque no come mucho.","e":"My cat is very skinny because it doesn't eat much.","w":"flaco"},
+  {"s":"Este pastel está muy **rico**.","e":"This cake is very tasty.","w":"rico"},
+  {"s":"Ella usa la **estufa** para hacer sopa.","e":"She uses the stove to make soup.","w":"estufa"},
+  {"s":"El pastel está en el **horno**.","e":"The cake is in the oven.","w":"horno"},
+  {"s":"Ese actor es muy **gracioso**.","e":"That actor is very funny.","w":"gracioso"},
+  {"s":"No tengo mucho **dinero** esta semana.","e":"I don't have much money this week.","w":"dinero"},
+  {"s":"Vemos la televisión en el **salón**.","e":"We watch television in the living room.","w":"salón"},
+  {"s":"Vi un **caballo** blanco cerca del río.","e":"I saw a white horse near the river.","w":"caballo"},
+  {"s":"Me lavo el **cabello** cada mañana.","e":"I wash my hair every morning.","w":"cabello"},
+  {"s":"¿Conoces un buen **lugar** para comer?","e":"Do you know a good place to eat?","w":"lugar"},
+  {"s":"Este libro es **mejor** que el otro.","e":"This book is better than the other one.","w":"mejor"},
+  {"s":"El **menor** de mis hijos tiene cinco años.","e":"The youngest of my children is five years old.","w":"menor"},
+  {"s":"En diciembre siempre **nieva** aquí.","e":"In December it always snows here.","w":"nevar"},
+  {"s":"Mi abuela **crió** a cinco hijos.","e":"My grandmother raised five children.","w":"criar"},
+  {"s":"El niño escuchó el **cuento** con atención.","e":"The child listened to the story attentively.","w":"cuento"},
+  {"s":"El **puente** sobre el río es muy antiguo.","e":"The bridge over the river is very old.","w":"puente"},
+  {"s":"La **cebolla** me hace llorar cuando la corto.","e":"The onion makes me cry when I cut it.","w":"cebolla"},
+  {"s":"Me caí al **piso** en la calle.","e":"I fell to the floor in the street.","w":"piso"},
+  {"s":"Ella me dio la **mano** para cruzar la calle.","e":"She gave me her hand to cross the street.","w":"mano"},
+  {"s":"El **sillón** de mi abuelo es muy cómodo.","e":"My grandfather's armchair is very comfortable.","w":"sillón"},
+  {"s":"El niño está **flaco** pero es muy activo.","e":"The boy is skinny but very active.","w":"flaco"},
+  {"s":"La sopa estaba **rica** y caliente.","e":"The soup was tasty and hot.","w":"rico"},
+  {"s":"La **estufa** está caliente, ten cuidado.","e":"The stove is hot, be careful.","w":"estufa"},
+  {"s":"Caliento el **horno** antes de cocinar.","e":"I heat the oven before cooking.","w":"horno"},
+  {"s":"Ella contó un chiste **gracioso** en la fiesta.","e":"She told a funny joke at the party.","w":"gracioso"},
+  {"s":"Ella ahorró su **dinero** para un viaje.","e":"She saved her money for a trip.","w":"dinero"},
+  {"s":"El **salón** de mi casa es grande y luminoso.","e":"The living room of my house is big and bright.","w":"salón"},
+  {"s":"Los **caballos** corren muy rápido.","e":"Horses run very fast.","w":"caballo"},
+  {"s":"Su **cabello** es negro y liso.","e":"His hair is black and straight.","w":"cabello"},
+  {"s":"Ella es la **menor** de la familia.","e":"She is the youngest in the family.","w":"menor"},
+  {"s":"**Nevaba** cuando llegué a casa.","e":"It was snowing when I arrived home.","w":"nevar"},
+  {"s":"Nosotros **criamos** a nuestros hijos en el campo.","e":"We raised our children in the countryside.","w":"criar"},
+  {"s":"Ella escribió un **cuento** muy bonito.","e":"She wrote a very nice story.","w":"cuento"},
+  {"s":"Necesito dos **cebollas** para esta receta.","e":"I need two onions for this recipe.","w":"cebolla"},
+  {"s":"Tengo frío en las **manos**.","e":"My hands are cold.","w":"mano"},
+  {"s":"Mi vecino es **rico** pero no es feliz.","e":"My neighbor is rich but he is not happy.","w":"rico"},
+  {"s":"Puse la olla en la **estufa**.","e":"I put the pot on the stove.","w":"estufa"},
+  {"s":"El **horno** está muy caliente.","e":"The oven is very hot.","w":"horno"},
+  {"s":"Mi hermano dice cosas **graciosas** todo el tiempo.","e":"My brother says funny things all the time.","w":"gracioso"}
+];
+
+const PRACTICE = [
+  {"s":"El café está muy **caliente**.","e":"The coffee is very hot.","w":"caliente"},
+  {"s":"Me duele la **oreja** derecha.","e":"My right ear hurts.","w":"oreja"},
+  {"s":"Esta pizza está muy **rica**.","e":"This pizza is very tasty.","w":"rico"},
+  {"s":"Mi primo es muy **gracioso**.","e":"My cousin is very funny.","w":"gracioso"},
+  {"s":"El **ascensor** es rápido y cómodo.","e":"The elevator is fast and comfortable.","w":"ascensor"},
+  {"s":"Tu libro está **ahí**, en la mesa.","e":"Your book is there, on the table.","w":"ahí"},
+  {"s":"**Tragué** la medicina sin agua.","e":"I swallowed the medicine without water.","w":"tragar"},
+  {"s":"El perro me **asustó** mucho.","e":"The dog scared me a lot.","w":"asustar"},
+  {"s":"Le **pregunté** la dirección al policía.","e":"I asked the police officer for the address.","w":"preguntar"},
+  {"s":"No **contesté** el teléfono.","e":"I didn't answer the phone.","w":"contestar"},
+  {"s":"Me **acuesto** a las diez de la noche.","e":"I go to bed at ten at night.","w":"acostarse"},
+  {"s":"Me **senté** en el banco del parque.","e":"I sat down on the park bench.","w":"sentarse"},
+  {"s":"Me **visto** rápido por las mañanas.","e":"I get dressed quickly in the mornings.","w":"vestirse"},
+  {"s":"¿Me **prestas** tu lápiz?","e":"Can you lend me your pencil?","w":"prestar"},
+  {"s":"¿Cuándo me **devuelves** el libro?","e":"When will you return the book to me?","w":"devolver"},
+  {"s":"**Gasté** todo mi dinero en ropa.","e":"I spent all my money on clothes.","w":"gastar"},
+  {"s":"**Firmé** el contrato ayer.","e":"I signed the contract yesterday.","w":"firmar"},
+  {"s":"**Guardo** mis documentos en este cajón.","e":"I keep my documents in this drawer.","w":"guardar"},
+  {"s":"Mi mamá me **abrazó** cuando llegué a casa.","e":"My mom hugged me when I got home.","w":"abrazar"},
+  {"s":"**Trato** de hablar español cada día.","e":"I try to speak Spanish every day.","w":"tratar"},
+  {"s":"¿Qué **ocurrió** aquí?","e":"What happened here?","w":"ocurrir"},
+  {"s":"Me **enamoré** de ella en el primer momento.","e":"I fell in love with her at first sight.","w":"enamorarse"},
+  {"s":"Me **despedí** de mis amigos en la fiesta.","e":"I said goodbye to my friends at the party.","w":"despedirse"},
+  {"s":"Ella me **perdonó** después de mucho tiempo.","e":"She forgave me after a long time.","w":"perdonar"},
+  {"s":"Alguien me **robó** la cartera.","e":"Someone stole my wallet.","w":"robar"},
+  {"s":"Puse mucho **ajo** en la salsa.","e":"I put a lot of garlic in the sauce.","w":"ajo"},
+  {"s":"Puse **aceite** en la ensalada.","e":"I put oil in the salad.","w":"aceite"},
+  {"s":"Me duele el **cuello** hoy.","e":"My neck hurts today.","w":"cuello"},
+  {"s":"Me duele la **espalda** después de trabajar.","e":"My back hurts after working.","w":"espalda"},
+  {"s":"Me sangra la **nariz**.","e":"My nose is bleeding.","w":"nariz"},
+  {"s":"El médico analizó mi **sangre**.","e":"The doctor analyzed my blood.","w":"sangre"},
+  {"s":"Me corté las **uñas** esta mañana.","e":"I cut my nails this morning.","w":"uña"},
+  {"s":"Nadamos en el **lago** por la tarde.","e":"We swam in the lake in the afternoon.","w":"lago"},
+  {"s":"Tengo un **conejo** blanco en casa.","e":"I have a white rabbit at home.","w":"conejo"},
+  {"s":"Una **abeja** me picó en el brazo.","e":"A bee stung me on the arm.","w":"abeja"},
+  {"s":"Sentí mucha **alegría** cuando nació mi hijo.","e":"I felt great joy when my son was born.","w":"alegría"},
+  {"s":"Sentí mucha **tristeza** cuando se fue.","e":"I felt great sadness when she left.","w":"tristeza"},
+  {"s":"Ten cuidado, el plato está **caliente**.","e":"Be careful, the plate is hot.","w":"caliente"},
+  {"s":"El niño se tapó las **orejas** con las manos.","e":"The child covered his ears with his hands.","w":"oreja"},
+  {"s":"El helado de chocolate es muy **rico**.","e":"Chocolate ice cream is very tasty.","w":"rico"},
+  {"s":"Él siempre dice algo **gracioso**.","e":"He always says something funny.","w":"gracioso"},
+  {"s":"Tomé el **ascensor** para subir al quinto piso.","e":"I took the elevator to go up to the fifth floor.","w":"ascensor"},
+  {"s":"Ella vive **ahí**, en esa casa blanca.","e":"She lives there, in that white house.","w":"ahí"},
+  {"s":"El niño no puede **tragar** la pastilla.","e":"The child can't swallow the pill.","w":"tragar"},
+  {"s":"No me **asustes**, por favor.","e":"Don't scare me, please.","w":"asustar"},
+  {"s":"Ella siempre **pregunta** muchas cosas.","e":"She always asks many things.","w":"preguntar"},
+  {"s":"Ella **contesta** todos los correos rápido.","e":"She answers all emails quickly.","w":"contestar"},
+  {"s":"Los niños se **acostaron** tarde ayer.","e":"The children went to bed late yesterday.","w":"acostarse"},
+  {"s":"Por favor, **siéntate** aquí.","e":"Please, sit down here.","w":"sentarse"},
+  {"s":"El niño se **vistió** solo hoy.","e":"The child got dressed by himself today.","w":"vestirse"},
+  {"s":"Ella me **prestó** su coche para el fin de semana.","e":"She lent me her car for the weekend.","w":"prestar"},
+  {"s":"**Devolví** el abrigo a la tienda.","e":"I returned the coat to the store.","w":"devolver"},
+  {"s":"Ella **gasta** mucho en restaurantes.","e":"She spends a lot on restaurants.","w":"gastar"},
+  {"s":"¿Puedes **firmar** aquí, por favor?","e":"Can you sign here, please?","w":"firmar"},
+  {"s":"Ella **guardó** el dinero en el banco.","e":"She kept the money in the bank.","w":"guardar"},
+  {"s":"Los niños **abrazan** a sus padres.","e":"The children hug their parents.","w":"abrazar"},
+  {"s":"Ella **trató** de abrir la puerta.","e":"She tried to open the door.","w":"tratar"},
+  {"s":"Algo extraño **ocurre** en esa casa.","e":"Something strange is happening in that house.","w":"ocurrir"},
+  {"s":"Ellos se **enamoraron** en la universidad.","e":"They fell in love in college.","w":"enamorarse"},
+  {"s":"Ella se **despidió** con un abrazo.","e":"She said goodbye with a hug.","w":"despedirse"},
+  {"s":"**Perdona**, ¿puedes repetir eso?","e":"Sorry, can you repeat that?","w":"perdonar"},
+  {"s":"Un ladrón **robó** en esa tienda anoche.","e":"A thief stole from that store last night.","w":"robar"},
+  {"s":"El **ajo** le da mucho sabor a la comida.","e":"Garlic gives a lot of flavor to food.","w":"ajo"},
+  {"s":"El **aceite** está en la despensa.","e":"The oil is in the pantry.","w":"aceite"},
+  {"s":"Ella lleva una bufanda en el **cuello**.","e":"She wears a scarf around her neck.","w":"cuello"},
+  {"s":"Ella me dio un masaje en la **espalda**.","e":"She gave me a back massage.","w":"espalda"},
+  {"s":"El frío me pone la **nariz** roja.","e":"The cold turns my nose red.","w":"nariz"},
+  {"s":"Vi **sangre** en su mano.","e":"I saw blood on his hand.","w":"sangre"},
+  {"s":"Ella tiene las **uñas** muy largas.","e":"She has very long nails.","w":"uña"},
+  {"s":"El **lago** es muy profundo.","e":"The lake is very deep.","w":"lago"},
+  {"s":"El **conejo** come zanahorias.","e":"The rabbit eats carrots.","w":"conejo"},
+  {"s":"Las **abejas** hacen miel.","e":"Bees make honey.","w":"abeja"},
+  {"s":"La **alegría** de los niños es contagiosa.","e":"The joy of children is contagious.","w":"alegría"},
+  {"s":"La **tristeza** de su mirada me preocupó.","e":"The sadness in his gaze worried me.","w":"tristeza"},
+  {"s":"El agua de la ducha estaba muy **caliente**.","e":"The shower water was very hot.","w":"caliente"},
+  {"s":"Ella es **rica** pero no es feliz.","e":"She is rich but not happy.","w":"rico"},
+  {"s":"Espero el **ascensor** en la planta baja.","e":"I wait for the elevator on the ground floor.","w":"ascensor"},
+  {"s":"Déjalo **ahí**, por favor.","e":"Leave it there, please.","w":"ahí"},
+  {"s":"Ella **tragó** la comida rápido.","e":"She swallowed the food quickly.","w":"tragar"},
+  {"s":"El ruido **asustó** al bebé.","e":"The noise scared the baby.","w":"asustar"},
+  {"s":"¿Me **preguntas** algo?","e":"Are you asking me something?","w":"preguntar"},
+  {"s":"El niño **contestó** bien en clase.","e":"The child answered well in class.","w":"contestar"},
+  {"s":"Ella se **acuesta** siempre antes de las once.","e":"She always goes to bed before eleven.","w":"acostarse"},
+  {"s":"Ellos se **sentaron** a la mesa.","e":"They sat down at the table.","w":"sentarse"},
+  {"s":"Ella se **viste** muy bien siempre.","e":"She always dresses very nicely.","w":"vestirse"},
+  {"s":"No **presto** mis cosas fácilmente.","e":"I don't lend my things easily.","w":"prestar"},
+  {"s":"Ella siempre **devuelve** lo que pide prestado.","e":"She always returns what she borrows.","w":"devolver"},
+  {"s":"No **gastes** tanto dinero.","e":"Don't spend so much money.","w":"gastar"},
+  {"s":"El director **firmó** todos los documentos.","e":"The director signed all the documents.","w":"firmar"},
+  {"s":"Por favor, **guarda** tus cosas.","e":"Please, put your things away.","w":"guardar"},
+  {"s":"**Abracé** a mi amigo en el aeropuerto.","e":"I hugged my friend at the airport.","w":"abrazar"},
+  {"s":"Nosotros **tratamos** de llegar a tiempo.","e":"We tried to arrive on time.","w":"tratar"},
+  {"s":"El accidente **ocurrió** ayer por la noche.","e":"The accident occurred last night.","w":"ocurrir"},
+  {"s":"Ella se **enamora** fácilmente.","e":"She falls in love easily.","w":"enamorarse"},
+  {"s":"Nos **despedimos** en la puerta.","e":"We said goodbye at the door.","w":"despedirse"},
+  {"s":"Yo **perdono** fácilmente a mis amigos.","e":"I forgive my friends easily.","w":"perdonar"},
+  {"s":"No **robes** lo que no es tuyo.","e":"Don't steal what isn't yours.","w":"robar"},
+  {"s":"Ella no come **ajo** porque no le gusta el olor.","e":"She doesn't eat garlic because she doesn't like the smell.","w":"ajo"},
+  {"s":"Caliento el **aceite** antes de freír.","e":"I heat the oil before frying.","w":"aceite"},
+  {"s":"El **cuello** de mi camisa es demasiado pequeño.","e":"The collar of my shirt is too small.","w":"cuello"},
+  {"s":"Lleva la mochila en la **espalda**.","e":"He carries the backpack on his back.","w":"espalda"},
+  {"s":"El bebé tiene la **nariz** tapada.","e":"The baby has a stuffy nose.","w":"nariz"},
+  {"s":"La **sangre** es roja.","e":"Blood is red.","w":"sangre"},
+  {"s":"Me rompí una **uña** hoy.","e":"I broke a nail today.","w":"uña"},
+  {"s":"Hay patos en el **lago**.","e":"There are ducks in the lake.","w":"lago"},
+  {"s":"Vi dos **conejos** en el jardín.","e":"I saw two rabbits in the garden.","w":"conejo"},
+  {"s":"Hay muchas **abejas** en este jardín.","e":"There are many bees in this garden.","w":"abeja"},
+  {"s":"Su cara llena de **alegría** me hace feliz.","e":"His face full of joy makes me happy.","w":"alegría"},
+  {"s":"A veces la **tristeza** pasa sola.","e":"Sometimes sadness goes away on its own.","w":"tristeza"}
+];
+
+let mode = 'daily';
+let deck = [...DAILY];
+let idx = 0, revealed = false, missedWords = new Set();
+
+function wordCount(arr) { return new Set(arr.map(s => s.w)).size; }
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function updateTabs() {
+  const d = document.getElementById('tabDaily');
+  const p = document.getElementById('tabPractice');
+  const dw = wordCount(DAILY);
+  const pw = wordCount(PRACTICE);
+  d.textContent = 'Daily · ' + dw;
+  p.textContent = 'Needs Practice · ' + pw;
+  d.classList.toggle('dim', mode !== 'daily');
+  p.classList.toggle('dim', mode !== 'practice');
+  if (PRACTICE.length === 0) p.classList.add('no-cards');
+  else p.classList.remove('no-cards');
+}
+
+function setMode(m) {
+  if (m === 'practice' && PRACTICE.length === 0) return;
+  mode = m;
+  deck = [...(mode === 'daily' ? DAILY : PRACTICE)];
+  idx = 0; revealed = false; missedWords = new Set();
+  updateTabs();
+  hideDone();
+  resetFlagState();
+  if (deck.length === 0) { showEmpty(); }
+  else {
+    hideEmpty();
+    document.getElementById('cardWrap').classList.remove('hide');
+    document.getElementById('keyHint').style.display = '';
+    document.getElementById('actionBtns').classList.remove('show');
+    render();
+  }
+}
+
+function showEmpty() {
+  document.getElementById('cardWrap').classList.add('hide');
+  document.getElementById('keyHint').style.display = 'none';
+  document.getElementById('emptyState').classList.add('show');
+  document.getElementById('bar').style.width = '0%';
+  document.getElementById('counter').textContent = '';
+  document.getElementById('meta').textContent = '';
+}
+function hideEmpty() { document.getElementById('emptyState').classList.remove('show'); }
+function hideDone() {
+  document.getElementById('doneScreen').classList.remove('show');
+  document.getElementById('flaggedSection').style.display = 'none';
+}
+function resetFlagState() {
+  document.getElementById('flagBtn').disabled = false;
+  document.getElementById('flagBtn').textContent = 'Flag for tomorrow';
+  document.getElementById('flagConfirm').classList.remove('show');
+}
+
+function bold(str) { return str.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); }
+
+function render() {
+  const s = deck[idx];
+  document.getElementById('bar').style.width = (idx / deck.length * 100).toFixed(1) + '%';
+  document.getElementById('counter').textContent = (idx + 1) + ' / ' + deck.length;
+  document.getElementById('meta').textContent = wordCount(deck) + ' words';
+  const wl = document.getElementById('wordLabel');
+  wl.textContent = s.w; wl.classList.remove('missed-flash');
+  document.getElementById('spanishEl').innerHTML = bold(s.s);
+  const tr = document.getElementById('translationEl');
+  tr.textContent = s.e; tr.classList.remove('show');
+  document.getElementById('actionBtns').classList.remove('show');
+  document.getElementById('keyHint').style.opacity = '0.4';
+  revealed = false;
+}
+
+function reveal() {
+  document.getElementById('translationEl').classList.add('show');
+  document.getElementById('actionBtns').classList.add('show');
+  document.getElementById('keyHint').style.opacity = '1';
+  revealed = true;
+}
+
+function handleAction(wasMissed) {
+  if (wasMissed) {
+    missedWords.add(deck[idx].w);
+    document.getElementById('wordLabel').classList.add('missed-flash');
+  }
+  document.getElementById('actionBtns').classList.remove('show');
+  setTimeout(() => { idx++; if (idx >= deck.length) showDone(); else render(); }, wasMissed ? 350 : 120);
+}
+
+function showDone() {
+  document.getElementById('cardWrap').classList.add('hide');
+  document.getElementById('keyHint').style.display = 'none';
+  document.getElementById('doneScreen').classList.add('show');
+  document.getElementById('bar').style.width = '100%';
+  const wc = wordCount(deck);
+  document.getElementById('doneStats').textContent = deck.length + ' sentences · ' + wc + ' words' + (missedWords.size ? ' · ' + missedWords.size + ' missed' : '');
+  if (missedWords.size > 0) {
+    document.getElementById('flaggedSection').style.display = 'block';
+    const fw = document.getElementById('flaggedWords');
+    fw.innerHTML = '';
+    missedWords.forEach(w => {
+      const el = document.createElement('span');
+      el.className = 'flagged-word'; el.textContent = w; fw.appendChild(el);
+    });
+  }
+}
+
+function doRestart(doShuffle) {
+  const src = mode === 'daily' ? DAILY : PRACTICE;
+  deck = doShuffle ? shuffle(src) : [...src];
+  idx = 0; revealed = false; missedWords = new Set();
+  hideDone(); resetFlagState();
+  document.getElementById('cardWrap').classList.remove('hide');
+  document.getElementById('keyHint').style.display = '';
+  document.getElementById('actionBtns').classList.remove('show');
+  render();
+}
+
+function flagForTomorrow() {
+  const words = [...missedWords];
+  const filePath = '_06 Donkey Work/Temp Donkey Files/spanish-flagged-words.md';
+  const data = words.join('\n');
+  const url = 'obsidian://advanced-uri'
+    + '?vault=' + encodeURIComponent('Main Brain')
+    + '&filepath=' + encodeURIComponent(filePath)
+    + '&data=' + encodeURIComponent(data)
+    + '&mode=overwrite';
+  window.open(url);
+  document.getElementById('flagBtn').disabled = true;
+  document.getElementById('flagBtn').textContent = 'Flagged ✓';
+  setTimeout(() => document.getElementById('flagConfirm').classList.add('show'), 300);
+}
+
+document.getElementById('cardWrap').addEventListener('click', () => { if (!revealed) reveal(); });
+document.addEventListener('keydown', e => {
+  if (document.getElementById('doneScreen').classList.contains('show')) return;
+  if (document.getElementById('emptyState').classList.contains('show')) return;
+  if (e.code === 'Space') { e.preventDefault(); if (!revealed) reveal(); else handleAction(false); }
+  if (e.key === 'm' || e.key === 'M') { if (!revealed) reveal(); else handleAction(true); }
+});
+
+updateTabs();
+if (DAILY.length > 0) render(); else showEmpty();
+</script>
+</body>
+</html>
