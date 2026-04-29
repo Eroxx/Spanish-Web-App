@@ -235,8 +235,12 @@ const PRACTICE = [
 ];
 
 // --- Persistence (artifact → vault file; web app → localStorage) ---
+
+// Fingerprint uses ALL words (sorted) from both decks — collision-resistant
 function fp() {
-  return DAILY.length+'|'+(DAILY[0]?.w||'')+'|'+PRACTICE.length+'|'+(PRACTICE[0]?.w||'');
+  const dw = [...new Set(DAILY.map(s=>s.w))].sort().join(',');
+  const pw = [...new Set(PRACTICE.map(s=>s.w))].sort().join(',');
+  return dw + '|' + pw;
 }
 function toB64(s) {
   return btoa(encodeURIComponent(s).replace(/%([0-9A-F]{2})/g, (_, p) => String.fromCharCode(parseInt(p, 16))));
@@ -303,17 +307,23 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 async function init() {
   const saved = await loadState();
   if (saved) {
-    dailyDeck = saved.daily; practiceDeck = saved.practice; mode = saved.mode;
+    dailyDeck = saved.daily; practiceDeck = saved.practice;
     if (saved.deckState) {
       deckState.daily.idx = saved.deckState.daily.idx || 0;
       deckState.daily.missed = new Set(saved.deckState.daily.missed || []);
       deckState.practice.idx = saved.deckState.practice.idx || 0;
       deckState.practice.missed = new Set(saved.deckState.practice.missed || []);
     } else {
-      deckState[mode].idx = saved.idx || 0;
-      deckState[mode].missed = new Set(saved.missed || []);
+      deckState[saved.mode || 'daily'].idx = saved.idx || 0;
+      deckState[saved.mode || 'daily'].missed = new Set(saved.missed || []);
     }
-    idx = deckState[mode].idx; missedWords = new Set(deckState[mode].missed);
+    // Bug fix #4: if saved mode is practice but practice is now empty, fall back to daily
+    mode = (saved.mode === 'practice' && practiceDeck.length === 0) ? 'daily' : (saved.mode || 'daily');
+    // Bug fix #2 & #3: if restored idx is past end (deck was completed), reset to 0
+    if (deckState.daily.idx >= dailyDeck.length && dailyDeck.length > 0) deckState.daily.idx = 0;
+    if (deckState.practice.idx >= practiceDeck.length && practiceDeck.length > 0) deckState.practice.idx = 0;
+    idx = deckState[mode].idx;
+    missedWords = new Set(deckState[mode].missed);
   } else {
     dailyDeck = shuffle([...DAILY]); practiceDeck = shuffle([...PRACTICE]);
     mode = 'daily'; idx = 0; missedWords = new Set();
@@ -340,8 +350,8 @@ function updateTabs() {
   const p = document.getElementById('tabPractice');
   const dw = wordCount(DAILY);
   const pw = wordCount(PRACTICE);
-  d.textContent = 'Daily · ' + dw;
-  p.textContent = 'Needs Practice · ' + pw;
+  d.textContent = 'Daily' + (dw > 0 ? ' · ' + dw : '');
+  p.textContent = 'Needs Practice' + (pw > 0 ? ' · ' + pw : '');
   d.classList.toggle('dim', mode !== 'daily');
   p.classList.toggle('dim', mode !== 'practice');
   if (PRACTICE.length === 0) p.classList.add('no-cards');
@@ -355,6 +365,8 @@ function setMode(m) {
   mode = m;
   deck = [...(mode === 'daily' ? dailyDeck : practiceDeck)];
   idx = deckState[mode].idx;
+  // Bug fix #2: if switching back to a completed deck, restart it
+  if (idx >= deck.length) { idx = 0; deckState[mode].idx = 0; }
   missedWords = new Set(deckState[mode].missed);
   revealed = false;
   updateTabs();
@@ -393,11 +405,15 @@ function bold(str) { return str.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
 
 function render() {
   const s = deck[idx];
+  if (!s) return; // safety guard
   document.getElementById('bar').style.width = (idx / deck.length * 100).toFixed(1) + '%';
   document.getElementById('counter').textContent = (idx + 1) + ' / ' + deck.length;
   document.getElementById('meta').textContent = wordCount(deck) + ' words';
   const wl = document.getElementById('wordLabel');
   wl.textContent = s.w; wl.classList.remove('missed-flash');
+  // Bug fix #3: show infinitive for verb cards
+  const infEl = document.getElementById('infinitiveEl');
+  if (infEl) infEl.textContent = s.inf ? s.inf : '';
   document.getElementById('spanishEl').innerHTML = bold(s.s);
   const tr = document.getElementById('translationEl');
   tr.textContent = s.e; tr.classList.remove('show');
@@ -447,7 +463,7 @@ function showDone() {
 
 function doRestart(doShuffle) {
   const src = mode === 'daily' ? dailyDeck : practiceDeck;
-  deck = shuffle([...src]);
+  deck = doShuffle ? shuffle([...src]) : [...src];
   idx = 0; revealed = false; missedWords = new Set();
   deckState[mode] = { idx: 0, missed: new Set() };
   clearState(); hideDone(); resetFlagState();
