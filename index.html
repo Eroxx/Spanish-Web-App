@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Spanish Sentences</title>
-<meta http-equiv="cache-control" content="no-cache">
-<meta http-equiv="pragma" content="no-cache">
 <style>
   :root { color-scheme: light; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -27,8 +25,9 @@
   #tabPractice.no-cards { opacity: 0.3; cursor: default; }
   .counter { position: fixed; top: 38px; right: 18px; font-size: 12px; color: rgba(255,255,255,0.3); font-variant-numeric: tabular-nums; }
   .meta-row { position: fixed; top: 38px; left: 18px; font-size: 11px; color: rgba(255,255,255,0.2); }
-  .word-label { font-size: 11px; text-transform: uppercase; letter-spacing: 2.5px; color: rgba(255,255,255,0.28); margin-bottom: 30px; font-weight: 500; transition: color 0.2s; }
+  .word-label { font-size: 11px; text-transform: uppercase; letter-spacing: 2.5px; color: rgba(255,255,255,0.28); margin-bottom: 8px; font-weight: 500; transition: color 0.2s; }
   .word-label.missed-flash { color: #fb923c; }
+  .infinitive-label { font-size: 12px; color: rgba(255,255,255,0.22); font-style: italic; margin-bottom: 22px; min-height: 1em; }
   .spanish { font-size: 28px; font-weight: 500; line-height: 1.55; text-align: center; max-width: 580px; margin-bottom: 32px; color: #f1f5f9; }
   .spanish strong { color: #38bdf8; font-weight: 700; }
   .translation { font-size: 17px; color: #94a3b8; text-align: center; max-width: 500px; line-height: 1.6; font-style: italic; opacity: 0; transform: translateY(8px); transition: opacity 0.22s ease, transform 0.22s ease; min-height: 1.6em; }
@@ -76,63 +75,64 @@
 </head>
 <body>
 <div class="progress-track"><div class="progress-fill" id="bar"></div></div>
+
 <div class="tab-bar">
   <button id="tabDaily" class="tab-btn" onclick="setMode('daily')">Daily</button>
   <button id="tabPractice" class="tab-btn" onclick="setMode('practice')">Needs Practice</button>
 </div>
+
 <div class="meta-row" id="meta"></div>
 <div class="counter" id="counter"></div>
+
 <div class="card-wrap" id="cardWrap">
   <div class="word-label" id="wordLabel"></div>
+  <div class="infinitive-label" id="infinitiveEl"></div>
   <div class="spanish" id="spanishEl"></div>
   <div class="translation" id="translationEl"></div>
   <div class="action-btns" id="actionBtns">
-    <button class="btn-action btn-gotit" onclick="handleAction(false)">Got it ✓</button>
-    <button class="btn-action btn-missed" onclick="handleAction(true)">Missed ✗</button>
+    <button class="btn-action btn-gotit" onclick="handleAction(false)">Got it &#10003;</button>
+    <button class="btn-action btn-missed" onclick="handleAction(true)">Missed &#10007;</button>
   </div>
 </div>
+
 <div class="empty-state" id="emptyState">
   <div class="empty-title">No cards yet</div>
-  <div class="empty-body">Cards you mark Again at least twice this week will appear here.<br><br>Say "practice my sentences" with Anki open to refresh.</div>
+  <div class="empty-body">Cards you mark Again at least twice this week will appear here.<br><br>Say &#8220;practice my sentences&#8221; with Anki open to refresh.</div>
 </div>
+
 <div class="key-hint" id="keyHint">
   <div class="k"><span>space</span> got it</div>
   <div class="k missed"><span>m</span> missed</div>
   <div class="k"><span>tab</span> switch tab</div>
 </div>
+
 <div class="done" id="doneScreen">
-  <div class="done-check">✓</div>
+  <div class="done-check">&#10003;</div>
   <h2>All done</h2>
   <p class="stats" id="doneStats"></p>
   <div class="flagged-section" id="flaggedSection" style="display:none">
     <div class="flagged-label">Missed words</div>
     <div class="flagged-words" id="flaggedWords"></div>
     <button class="btn btn-flag" id="flagBtn" onclick="flagForTomorrow()">Flag for tomorrow</button>
-    <div class="flag-confirm" id="flagConfirm">Saved to vault — they'll be first in tomorrow's batch.</div>
+    <div class="flag-confirm" id="flagConfirm">Saved to vault &#8212; they&#8217;ll be first in tomorrow&#8217;s batch.</div>
   </div>
   <div class="done-btns">
     <button class="btn btn-again" onclick="doRestart(false)">Go again</button>
     <button class="btn btn-shuffle" onclick="doRestart(true)">Shuffle</button>
   </div>
 </div>
+
 <script>
-const SOURCE_IDS = [1722131051480, 1723555566137, 1724940742357, 1772113331017, 1772660723313, 1775964588457, 1718851335527, 1718851335528, 1718851335622, 1718851335629, 1718851335630, 1718851335645, 1719802579243, 1719802579615, 1719802579924, 1720214542730, 1722131052062, 1722132253766, 1722195225183, 1722218330240, 1722218331651, 1722469713771, 1722469713977, 1722712578584, 1722712581202, 1722712582950, 1722712583969, 1772113330985, 1772113330986, 1772113330988];
-
-const DAILY = [{"s": "El gato duerme en el **suelo**.", "e": "The cat sleeps on the floor.", "w": "suelo"}, {"s": "Yo **sigo** a mi hermano por la calle.", "e": "I follow my brother down the street.", "w": "sigo", "inf": "seguir"}, {"s": "Ella **descubre** un libro viejo en casa.", "e": "She discovers an old book at home.", "w": "descubre", "inf": "descubrir"}, {"s": "**Según** Rosa, el jardín es agradable.", "e": "According to Rosa, the garden is pleasant.", "w": "según"}, {"s": "Yo **empujo** la puerta con la mano.", "e": "I push the door with my hand.", "w": "empujo", "inf": "empujar"}, {"s": "Yo **trato** de aprender español todos los días.", "e": "I try to learn Spanish every day.", "w": "trato", "inf": "tratar"}, {"s": "El **caballo** corre en el campo.", "e": "The horse runs in the field.", "w": "caballo"}, {"s": "Mi hermana tiene el **cabello** largo.", "e": "My sister has long hair.", "w": "cabello"}, {"s": "Este **lugar** es muy tranquilo.", "e": "This place is very quiet.", "w": "lugar"}, {"s": "Este café es **mejor** que el otro.", "e": "This coffee is better than the other one.", "w": "mejor"}, {"s": "Mi hermano **menor** todavía estudia en la escuela.", "e": "My younger brother still studies at school.", "w": "menor"}, {"s": "En las montañas **nieva** mucho en enero.", "e": "It snows a lot in the mountains in January.", "w": "nieva", "inf": "nevar"}, {"s": "Ella **cría** a sus hijos con mucho amor.", "e": "She raises her children with much love.", "w": "cría", "inf": "criar"}, {"s": "El **cuento** es corto pero bonito.", "e": "The story is short but pretty.", "w": "cuento"}, {"s": "El **puente** une las dos orillas del río.", "e": "The bridge joins the two banks of the river.", "w": "puente"}, {"s": "La **cebolla** está en la mesa de la cocina.", "e": "The onion is on the kitchen table.", "w": "cebolla"}, {"s": "El **piso** de la sala está limpio.", "e": "The floor of the living room is clean.", "w": "piso"}, {"s": "La **mano** del niño es pequeña.", "e": "The boy's hand is small.", "w": "mano"}, {"s": "El **sillón** es muy cómodo y suave.", "e": "The armchair is very comfortable and soft.", "w": "sillón"}, {"s": "El gato es muy **flaco** y pequeño.", "e": "The cat is very skinny and small.", "w": "flaco"}, {"s": "El postre está muy **rico** hoy.", "e": "The dessert is very tasty today.", "w": "rico"}, {"s": "La **estufa** está cerca de la ventana.", "e": "The stove is near the window.", "w": "estufa"}, {"s": "El pastel está en el **horno** ahora.", "e": "The cake is in the oven now.", "w": "horno"}, {"s": "El payaso es muy **gracioso** y alegre.", "e": "The clown is very funny and cheerful.", "w": "gracioso"}, {"s": "No tengo mucho **dinero** hoy.", "e": "I don't have much money today.", "w": "dinero"}, {"s": "El **salón** está decorado para la fiesta.", "e": "The living room is decorated for the party.", "w": "salón"}, {"s": "La **carta** está en la mesa de la entrada.", "e": "The letter is on the entry table.", "w": "carta"}, {"s": "El libro está **ahí**, en el sillón.", "e": "The book is there, on the armchair.", "w": "ahí"}, {"s": "Vamos **allá**, cerca del puente.", "e": "Let's go over there, near the bridge.", "w": "allá"}, {"s": "**Aun** los niños pequeños lo saben.", "e": "Even small children know it.", "w": "aun"}, {"s": "Limpio el **suelo** de la cocina.", "e": "I clean the kitchen floor.", "w": "suelo"}, {"s": "Nosotros **seguimos** el mismo camino cada día.", "e": "We follow the same path every day.", "w": "seguimos", "inf": "seguir"}, {"s": "Yo **descubro** un café nuevo cerca de aquí.", "e": "I discover a new café near here.", "w": "descubro", "inf": "descubrir"}, {"s": "**Según** mi madre, la cena está lista.", "e": "According to my mother, dinner is ready.", "w": "según"}, {"s": "Tú **empujas** la silla cerca de la mesa.", "e": "You push the chair near the table.", "w": "empujas", "inf": "empujar"}, {"s": "Ella **trata** de cocinar algo nuevo hoy.", "e": "She tries to cook something new today.", "w": "trata", "inf": "tratar"}, {"s": "Veo un **caballo** blanco cerca del río.", "e": "I see a white horse near the river.", "w": "caballo"}, {"s": "El niño se lava el **cabello** con agua.", "e": "The boy washes his hair with water.", "w": "cabello"}, {"s": "Conozco un **lugar** bonito cerca del parque.", "e": "I know a pretty place near the park.", "w": "lugar"}, {"s": "Mi amiga es la **mejor** estudiante de la clase.", "e": "My friend is the best student in the class.", "w": "mejor"}, {"s": "Ella es **menor** que yo por dos años.", "e": "She is younger than me by two years.", "w": "menor"}, {"s": "Aquí casi nunca **nieva** en invierno.", "e": "It almost never snows here in winter.", "w": "nieva", "inf": "nevar"}, {"s": "Mis abuelos **crían** gallinas en la granja.", "e": "My grandparents raise chickens on the farm.", "w": "crían", "inf": "criar"}, {"s": "Mi madre lee un **cuento** a los niños.", "e": "My mother reads a story to the children.", "w": "cuento"}, {"s": "Camino por el **puente** todas las mañanas.", "e": "I walk across the bridge every morning.", "w": "puente"}, {"s": "Yo corto una **cebolla** para la cena.", "e": "I cut an onion for dinner.", "w": "cebolla"}, {"s": "Vivo en el tercer **piso** del edificio.", "e": "I live on the third floor of the building.", "w": "piso"}, {"s": "Yo lavo las **manos** antes de comer.", "e": "I wash my hands before eating.", "w": "manos"}, {"s": "Mi padre lee un libro en el **sillón**.", "e": "My father reads a book in the armchair.", "w": "sillón"}, {"s": "La niña está **flaca** pero está sana.", "e": "The girl is skinny but she is healthy.", "w": "flaca"}, {"s": "Esta sopa está **rica** y caliente.", "e": "This soup is tasty and hot.", "w": "rica"}, {"s": "Yo cocino la cena en la **estufa**.", "e": "I cook dinner on the stove.", "w": "estufa"}, {"s": "El **horno** está caliente, ten cuidado.", "e": "The oven is hot, be careful.", "w": "horno"}, {"s": "Mi amiga es **graciosa** cuando habla.", "e": "My friend is funny when she talks.", "w": "graciosa"}, {"s": "Ella guarda el **dinero** en el banco.", "e": "She keeps the money in the bank.", "w": "dinero"}, {"s": "Mis amigos esperan en el **salón**.", "e": "My friends wait in the living room.", "w": "salón"}, {"s": "Yo escribo una **carta** a mi abuela.", "e": "I write a letter to my grandmother.", "w": "carta"}, {"s": "Mira **ahí**, hay un gato pequeño.", "e": "Look there, there is a small cat.", "w": "ahí"}, {"s": "Mi tía vive **allá** en otra ciudad.", "e": "My aunt lives over there in another city.", "w": "allá"}, {"s": "Ella trabaja **aun** los domingos.", "e": "She works even on Sundays.", "w": "aun"}];
-
+const SOURCE_IDS = [1722131051480, 1723555566137, 1724940742357, 1772113331017, 1772660723312, 1772660723313, 1772660723322, 1775964588408, 1775964588431, 1775964588444, 1775964588447, 1775964588457, 1775964588458, 1775964588470, 1775964588473, 1775964658588, 1775964658622, 1775964658625, 1718851335527, 1718851335528, 1718851335622, 1718851335629, 1718851335630, 1718851335645, 1719802579243, 1719802579615, 1719802579924, 1720214542730, 1722131052062, 1722132253766];
+const DAILY = [{"s": "El **suelo** de la cocina est\u00e1 limpio.", "e": "The kitchen floor is clean.", "w": "suelo"}, {"s": "Yo **sigo** el camino con cuidado.", "e": "I follow the path carefully.", "w": "seguir", "inf": "seguir"}, {"s": "Nosotros **descubrimos** un lugar bonito.", "e": "We discover a beautiful place.", "w": "descubrir", "inf": "descubrir"}, {"s": "**Seg\u00fan** mi madre, la cena est\u00e1 lista.", "e": "According to my mother, dinner is ready.", "w": "seg\u00fan"}, {"s": "Yo **permanezco** en casa hoy.", "e": "I remain at home today.", "w": "permanecer", "inf": "permanecer"}, {"s": "Ella **empuja** la silla hacia la mesa.", "e": "She pushes the chair toward the table.", "w": "empujar", "inf": "empujar"}, {"s": "El ni\u00f1o tiene mal **aliento** hoy.", "e": "The child has bad breath today.", "w": "aliento"}, {"s": "El perro **asusta** al gato.", "e": "The dog scares the cat.", "w": "asustar", "inf": "asustar"}, {"s": "Yo me **acuesto** a las diez.", "e": "I go to bed at ten.", "w": "acostarse", "inf": "acostarse"}, {"s": "\u00c9l **gasta** mucho dinero en libros.", "e": "He spends a lot of money on books.", "w": "gastar", "inf": "gastar"}, {"s": "Yo **guardo** mis cosas en la mochila.", "e": "I keep my things in the backpack.", "w": "guardar", "inf": "guardar"}, {"s": "Yo **trato** de hablar despacio.", "e": "I try to speak slowly.", "w": "tratar", "inf": "tratar"}, {"s": "**Falta** una silla en la mesa.", "e": "There is a chair missing from the table.", "w": "faltar", "inf": "faltar"}, {"s": "Yo me **despido** de mi familia.", "e": "I say goodbye to my family.", "w": "despedirse", "inf": "despedirse"}, {"s": "Ella **perdona** a su amigo.", "e": "She forgives her friend.", "w": "perdonar", "inf": "perdonar"}, {"s": "Me duele el **codo** hoy.", "e": "My elbow hurts today.", "w": "codo"}, {"s": "La **gallina** come en el patio.", "e": "The hen eats in the yard.", "w": "gallina"}, {"s": "Hay una **serpiente** en el jard\u00edn.", "e": "There is a snake in the garden.", "w": "serpiente"}, {"s": "El **caballo** corre en el campo.", "e": "The horse runs in the field.", "w": "caballo"}, {"s": "Ella tiene el **cabello** largo.", "e": "She has long hair.", "w": "cabello"}, {"s": "Este **lugar** es muy tranquilo.", "e": "This place is very quiet.", "w": "lugar"}, {"s": "Este caf\u00e9 es **mejor** que el otro.", "e": "This coffee is better than the other.", "w": "mejor"}, {"s": "Mi hermano es **menor** que yo.", "e": "My brother is younger than me.", "w": "menor"}, {"s": "Hoy **nieva** mucho en las monta\u00f1as.", "e": "Today it snows a lot in the mountains.", "w": "nevar", "inf": "nevar"}, {"s": "Ellos **cr\u00edan** gallinas en el campo.", "e": "They raise hens in the countryside.", "w": "criar", "inf": "criar"}, {"s": "Yo leo un **cuento** antes de dormir.", "e": "I read a story before sleeping.", "w": "cuento"}, {"s": "El **puente** sobre el r\u00edo es largo.", "e": "The bridge over the river is long.", "w": "puente"}, {"s": "La **cebolla** est\u00e1 en la cocina.", "e": "The onion is in the kitchen.", "w": "cebolla"}, {"s": "El **piso** de la sala est\u00e1 limpio.", "e": "The living room floor is clean.", "w": "piso"}, {"s": "Ella levanta la **mano** en clase.", "e": "She raises her hand in class.", "w": "mano"}, {"s": "El ni\u00f1o juega en el **suelo**.", "e": "The child plays on the floor.", "w": "suelo"}, {"s": "Ella **sigue** a su amigo al parque.", "e": "She follows her friend to the park.", "w": "seguir", "inf": "seguir"}, {"s": "\u00c9l **descubre** algo nuevo cada d\u00eda.", "e": "He discovers something new every day.", "w": "descubrir", "inf": "descubrir"}, {"s": "**Seg\u00fan** el mapa, el parque est\u00e1 cerca.", "e": "According to the map, the park is nearby.", "w": "seg\u00fan"}, {"s": "\u00c9l **permanece** tranquilo en la clase.", "e": "He remains calm in class.", "w": "permanecer", "inf": "permanecer"}, {"s": "Los ni\u00f1os **empujan** la puerta juntos.", "e": "The children push the door together.", "w": "empujar", "inf": "empujar"}, {"s": "Siento el **aliento** fr\u00edo del viento.", "e": "I feel the cold breath of the wind.", "w": "aliento"}, {"s": "Yo no **asusto** a mis amigos.", "e": "I do not scare my friends.", "w": "asustar", "inf": "asustar"}, {"s": "Ella se **acuesta** temprano los lunes.", "e": "She goes to bed early on Mondays.", "w": "acostarse", "inf": "acostarse"}, {"s": "Nosotros **gastamos** poco en el mercado.", "e": "We spend little at the market.", "w": "gastar", "inf": "gastar"}, {"s": "Ella **guarda** el pan en la cocina.", "e": "She keeps the bread in the kitchen.", "w": "guardar", "inf": "guardar"}, {"s": "\u00c9l **trata** de llegar a tiempo.", "e": "He tries to arrive on time.", "w": "tratar", "inf": "tratar"}, {"s": "Me **falta** un libro para la clase.", "e": "I am missing a book for class.", "w": "faltar", "inf": "faltar"}, {"s": "Ellos se **despiden** en la puerta.", "e": "They say goodbye at the door.", "w": "despedirse", "inf": "despedirse"}, {"s": "Yo **perdono** los errores peque\u00f1os.", "e": "I forgive small mistakes.", "w": "perdonar", "inf": "perdonar"}, {"s": "El m\u00e9dico mira el **codo** del ni\u00f1o.", "e": "The doctor looks at the child's elbow.", "w": "codo"}, {"s": "Veo una **gallina** cerca del \u00e1rbol.", "e": "I see a hen near the tree.", "w": "gallina"}, {"s": "La **serpiente** es larga y delgada.", "e": "The snake is long and thin.", "w": "serpiente"}, {"s": "Yo monto un **caballo** blanco.", "e": "I ride a white horse.", "w": "caballo"}, {"s": "Mi **cabello** es negro y rizado.", "e": "My hair is black and curly.", "w": "cabello"}, {"s": "Busco un buen **lugar** para comer.", "e": "I look for a good place to eat.", "w": "lugar"}, {"s": "Hoy me siento **mejor** que ayer.", "e": "Today I feel better than yesterday.", "w": "mejor"}, {"s": "Ella es la m\u00e1s **menor** de la familia.", "e": "She is the youngest in the family.", "w": "menor"}, {"s": "En invierno, a veces **nieva** aqu\u00ed.", "e": "In winter, it sometimes snows here.", "w": "nevar", "inf": "nevar"}, {"s": "Ella **cr\u00eda** a sus hijos con amor.", "e": "She raises her children with love.", "w": "criar", "inf": "criar"}, {"s": "El **cuento** habla de un ni\u00f1o valiente.", "e": "The story is about a brave child.", "w": "cuento"}, {"s": "Camino por el **puente** cada ma\u00f1ana.", "e": "I walk over the bridge every morning.", "w": "puente"}, {"s": "Me gusta cocinar con **cebolla** fresca.", "e": "I like to cook with fresh onion.", "w": "cebolla"}, {"s": "El gato duerme en el **piso**.", "e": "The cat sleeps on the floor.", "w": "piso"}, {"s": "Lavo la **mano** antes de comer.", "e": "I wash my hand before eating.", "w": "mano"}];
 const PRACTICE = [{"s": "El **pastel** de chocolate es muy rico.", "e": "The chocolate cake is very tasty.", "w": "pastel"}, {"s": "Tu libro está **allí**, en la silla.", "e": "Your book is there, on the chair.", "w": "allí"}, {"s": "El detective busca una **pista**.", "e": "The detective looks for a clue.", "w": "pista"}, {"s": "Yo **mando** un mensaje a mi amigo.", "e": "I send a message to my friend.", "w": "mando", "inf": "mandar"}, {"s": "El niño **tira** de la cuerda con fuerza.", "e": "The child pulls the rope hard.", "w": "tira", "inf": "tirar"}, {"s": "Ella **permanece** en casa hoy.", "e": "She remains at home today.", "w": "permanece", "inf": "permanecer"}, {"s": "El **aliento** del perro huele mal.", "e": "The dog's breath smells bad.", "w": "aliento"}, {"s": "El **fracaso** no es el fin del camino.", "e": "Failure is not the end of the road.", "w": "fracaso"}, {"s": "Yo **contesto** el teléfono cada vez que suena.", "e": "I answer the phone every time it rings.", "w": "contesto", "inf": "contestar"}, {"s": "Yo **entro** a la cocina con hambre.", "e": "I enter the kitchen hungry.", "w": "entro", "inf": "entrar"}, {"s": "Me **despierto** a las siete cada mañana.", "e": "I wake up at seven every morning.", "w": "despierto", "inf": "despertarse"}, {"s": "Mi madre me **cuenta** historias de su niñez.", "e": "My mother tells me stories from her childhood.", "w": "cuenta", "inf": "contar"}, {"s": "El profesor **explica** la lección muy bien.", "e": "The teacher explains the lesson very well.", "w": "explica", "inf": "explicar"}, {"s": "Mi padre **arregla** el coche en el garaje.", "e": "My father fixes the car in the garage.", "w": "arregla", "inf": "arreglar"}, {"s": "¿Me **prestas** tu paraguas?", "e": "Can you lend me your umbrella?", "w": "prestas", "inf": "prestar"}, {"s": "Yo **firmo** el documento esta mañana.", "e": "I sign the document this morning.", "w": "firmo", "inf": "firmar"}, {"s": "Yo **guardo** mis llaves en el cajón.", "e": "I keep my keys in the drawer.", "w": "guardo", "inf": "guardar"}, {"s": "Yo **acompaño** a mi madre al mercado.", "e": "I accompany my mother to the market.", "w": "acompaño", "inf": "acompañar"}, {"s": "Me **faltan** dos páginas para terminar el libro.", "e": "I'm missing two pages to finish the book.", "w": "faltan", "inf": "faltar"}, {"s": "Yo **quedo** en casa cuando llueve.", "e": "I stay home when it rains.", "w": "quedo", "inf": "quedar"}, {"s": "Yo **saludo** a mis vecinos cada mañana.", "e": "I greet my neighbors every morning.", "w": "saludo", "inf": "saludar"}, {"s": "Yo **perdono** a mis amigos fácilmente.", "e": "I forgive my friends easily.", "w": "perdono", "inf": "perdonar"}, {"s": "El ladrón **roba** en esa tienda.", "e": "The thief steals from that store.", "w": "roba", "inf": "robar"}, {"s": "El médico **cura** al paciente con medicina.", "e": "The doctor heals the patient with medicine.", "w": "cura", "inf": "curar"}, {"s": "El conejo come una **zanahoria** grande.", "e": "The rabbit eats a big carrot.", "w": "zanahoria"}, {"s": "Me duele el **pecho** cuando corro mucho.", "e": "My chest hurts when I run a lot.", "w": "pecho"}, {"s": "Me duele el **codo** derecho hoy.", "e": "My right elbow hurts today.", "w": "codo"}, {"s": "Ella tiene los **labios** muy rojos.", "e": "She has very red lips.", "w": "labios"}, {"s": "La **sangre** es de color rojo.", "e": "Blood is red in color.", "w": "sangre"}, {"s": "El **mar** está muy tranquilo esta mañana.", "e": "The sea is very calm this morning.", "w": "mar"}, {"s": "La **gallina** pone huevos cada día.", "e": "The hen lays eggs every day.", "w": "gallina"}, {"s": "El **oso** duerme en el bosque.", "e": "The bear sleeps in the forest.", "w": "oso"}, {"s": "La **serpiente** es un animal largo.", "e": "The snake is a long animal.", "w": "serpiente"}, {"s": "La **abeja** hace miel en el jardín.", "e": "The bee makes honey in the garden.", "w": "abeja"}, {"s": "Busco mis **guantes** para el frío.", "e": "I look for my gloves for the cold.", "w": "guantes"}, {"s": "La **libertad** es muy importante para mí.", "e": "Freedom is very important to me.", "w": "libertad"}, {"s": "Me gustan mucho las **uvas** verdes.", "e": "I really like green grapes.", "w": "uvas"}, {"s": "Me **despido** de mis amigos en la puerta.", "e": "I say goodbye to my friends at the door.", "w": "despido", "inf": "despedirse"}, {"s": "Me **siento** muy cansado hoy.", "e": "I feel very tired today.", "w": "siento", "inf": "sentirse"}, {"s": "Yo **ahorro** dinero cada mes.", "e": "I save money every month.", "w": "ahorro", "inf": "ahorrar"}, {"s": "Ella **gasta** mucho dinero en ropa.", "e": "She spends a lot of money on clothes.", "w": "gasta", "inf": "gastar"}, {"s": "Me **acuesto** a las diez de la noche.", "e": "I go to bed at ten at night.", "w": "acuesto", "inf": "acostarse"}, {"s": "El ruido fuerte me **asusta**.", "e": "The loud noise scares me.", "w": "asusta", "inf": "asustar"}, {"s": "Hay un **pastel** en la mesa para ti.", "e": "There is a cake on the table for you.", "w": "pastel"}, {"s": "Ella vive **allí**, en esa casa azul.", "e": "She lives there, in that blue house.", "w": "allí"}, {"s": "No hay ninguna **pista** en el caso.", "e": "There is no clue in the case.", "w": "pista"}, {"s": "Ella **manda** flores a su madre hoy.", "e": "She sends flowers to her mother today.", "w": "manda", "inf": "mandar"}, {"s": "Yo **tiro** de la puerta pero no abre.", "e": "I pull the door but it doesn't open.", "w": "tiro", "inf": "tirar"}, {"s": "Yo **permanezco** en la sala durante la lluvia.", "e": "I remain in the living room during the rain.", "w": "permanezco", "inf": "permanecer"}, {"s": "Ella respira despacio para calmar su **aliento**.", "e": "She breathes slowly to calm her breath.", "w": "aliento"}, {"s": "Aprendo mucho de cada **fracaso**.", "e": "I learn a lot from every failure.", "w": "fracaso"}, {"s": "Ella **contesta** todas las preguntas rápido.", "e": "She answers all the questions quickly.", "w": "contesta", "inf": "contestar"}, {"s": "Ellos **entran** a la sala con mucho ruido.", "e": "They enter the living room making a lot of noise.", "w": "entran", "inf": "entrar"}, {"s": "Ella se **despierta** tarde los domingos.", "e": "She wakes up late on Sundays.", "w": "despierta", "inf": "despertarse"}, {"s": "Nosotros **contamos** lo que pasa en la reunión.", "e": "We tell what happens in the meeting.", "w": "contamos", "inf": "contar"}, {"s": "Yo **explico** el problema a mi amigo.", "e": "I explain the problem to my friend.", "w": "explico", "inf": "explicar"}, {"s": "Yo **arreglo** mi cuarto cada mañana.", "e": "I tidy my room every morning.", "w": "arreglo", "inf": "arreglar"}, {"s": "Ella **presta** sus libros a los amigos.", "e": "She lends her books to her friends.", "w": "presta", "inf": "prestar"}, {"s": "Ella **firma** la carta con su nombre.", "e": "She signs the letter with her name.", "w": "firma", "inf": "firmar"}, {"s": "Ella **guarda** sus fotos en una caja.", "e": "She keeps her photos in a box.", "w": "guarda", "inf": "guardar"}, {"s": "Él **acompaña** a su hija a la escuela.", "e": "He accompanies his daughter to school.", "w": "acompaña", "inf": "acompañar"}, {"s": "Te **falta** un poco de práctica.", "e": "You're missing a bit of practice.", "w": "falta", "inf": "faltar"}, {"s": "¿Cuánto tiempo **queda** para la cena?", "e": "How much time is left until dinner?", "w": "queda", "inf": "quedar"}, {"s": "Ella **saluda** a todos con una sonrisa.", "e": "She greets everyone with a smile.", "w": "saluda", "inf": "saludar"}, {"s": "Ella **perdona** pero no olvida.", "e": "She forgives but doesn't forget.", "w": "perdona", "inf": "perdonar"}, {"s": "Nadie **roba** en este barrio.", "e": "Nobody steals in this neighborhood.", "w": "roba", "inf": "robar"}, {"s": "El tiempo **cura** muchas cosas.", "e": "Time heals many things.", "w": "cura", "inf": "curar"}, {"s": "Hay **zanahorias** en la sopa de hoy.", "e": "There are carrots in today's soup.", "w": "zanahorias"}, {"s": "El bebé duerme sobre el **pecho** de su madre.", "e": "The baby sleeps on his mother's chest.", "w": "pecho"}, {"s": "El niño tiene un golpe en el **codo**.", "e": "The child has a bump on his elbow.", "w": "codo"}, {"s": "Me duele el **labio** de tanto hablar.", "e": "My lip hurts from talking so much.", "w": "labio"}, {"s": "El médico analiza su **sangre** hoy.", "e": "The doctor analyzes his blood today.", "w": "sangre"}, {"s": "Me gusta caminar cerca del **mar**.", "e": "I like walking near the sea.", "w": "mar"}, {"s": "Mi abuela tiene muchas **gallinas** en su granja.", "e": "My grandmother has many hens on her farm.", "w": "gallinas"}, {"s": "Hay un **oso** grande en el zoológico.", "e": "There is a big bear in the zoo.", "w": "oso"}, {"s": "Veo una **serpiente** en el jardín.", "e": "I see a snake in the garden.", "w": "serpiente"}, {"s": "Hay muchas **abejas** en estas flores.", "e": "There are many bees on these flowers.", "w": "abejas"}, {"s": "El **guante** de mi mano izquierda está roto.", "e": "The glove on my left hand is broken.", "w": "guante"}, {"s": "Los niños tienen mucha **libertad** en el verano.", "e": "Children have a lot of freedom in the summer.", "w": "libertad"}, {"s": "Como una **uva** y es muy dulce.", "e": "I eat a grape and it is very sweet.", "w": "uva"}, {"s": "Ella se **despide** con un abrazo.", "e": "She says goodbye with a hug.", "w": "despide", "inf": "despedirse"}, {"s": "Ella se **siente** feliz con su familia.", "e": "She feels happy with her family.", "w": "siente", "inf": "sentirse"}, {"s": "Ella **ahorra** para comprar una bicicleta.", "e": "She saves up to buy a bicycle.", "w": "ahorra", "inf": "ahorrar"}, {"s": "Yo no **gasto** mucho en restaurantes.", "e": "I don't spend much at restaurants.", "w": "gasto", "inf": "gastar"}, {"s": "Los niños se **acuestan** temprano los días de escuela.", "e": "The children go to bed early on school days.", "w": "acuestan", "inf": "acostarse"}, {"s": "Los perros grandes me **asustan**.", "e": "Big dogs scare me.", "w": "asustan", "inf": "asustar"}, {"s": "¿Puedes **firmar** aquí, por favor?", "e": "Can you sign here, please?", "w": "firmar"}, {"s": "¿Dónde **guardas** tus llaves?", "e": "Where do you keep your keys?", "w": "guardas", "inf": "guardar"}, {"s": "La **abeja** vuela de flor en flor.", "e": "The bee flies from flower to flower.", "w": "abeja"}, {"s": "Nosotros nos **despedimos** al final de la reunión.", "e": "We say goodbye at the end of the meeting.", "w": "despedimos", "inf": "despedirse"}, {"s": "Ella no **asusta** a nadie.", "e": "She doesn't scare anyone.", "w": "asusta", "inf": "asustar"}];
 
-// --- Persistence (artifact → vault file; web app → localStorage) ---
-
-// Fingerprint uses ALL words (sorted) from both decks — collision-resistant
 function fp() {
   const dw = [...new Set(DAILY.map(s=>s.w))].sort().join(',');
   const pw = [...new Set(PRACTICE.map(s=>s.w))].sort().join(',');
   return dw + '|' + pw;
 }
-function toB64(s) {
-  return btoa(encodeURIComponent(s).replace(/%([0-9A-F]{2})/g, (_, p) => String.fromCharCode(parseInt(p, 16))));
-}
+function toB64(s) { return btoa(encodeURIComponent(s).replace(/%([0-9A-F]{2})/g, (_, p) => String.fromCharCode(parseInt(p, 16)))); }
 const STATE_KEY = 'spanish-state';
 const STATE_FILE = '_06 Donkey Work/Temp Donkey Files/spanish-sentences-state.json';
 let _vault = null;
@@ -185,42 +185,10 @@ async function loadState() {
     try { const s = JSON.parse(localStorage.getItem(STATE_KEY)); return s?.fp === fp() ? s : null; } catch(e) { return null; }
   }
 }
-
 let dailyDeck, practiceDeck, mode, idx, missedWords, deck;
 let revealed = false;
 const deckState = { daily: { idx: 0, missed: new Set() }, practice: { idx: 0, missed: new Set() } };
-
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveState(); });
-
-async function init() {
-  const saved = await loadState();
-  if (saved) {
-    dailyDeck = saved.daily; practiceDeck = saved.practice;
-    if (saved.deckState) {
-      deckState.daily.idx = saved.deckState.daily.idx || 0;
-      deckState.daily.missed = new Set(saved.deckState.daily.missed || []);
-      deckState.practice.idx = saved.deckState.practice.idx || 0;
-      deckState.practice.missed = new Set(saved.deckState.practice.missed || []);
-    } else {
-      deckState[saved.mode || 'daily'].idx = saved.idx || 0;
-      deckState[saved.mode || 'daily'].missed = new Set(saved.missed || []);
-    }
-    // Bug fix #4: if saved mode is practice but practice is now empty, fall back to daily
-    mode = (saved.mode === 'practice' && practiceDeck.length === 0) ? 'daily' : (saved.mode || 'daily');
-    // Bug fix #2 & #3: if restored idx is past end (deck was completed), reset to 0
-    if (deckState.daily.idx >= dailyDeck.length && dailyDeck.length > 0) deckState.daily.idx = 0;
-    if (deckState.practice.idx >= practiceDeck.length && practiceDeck.length > 0) deckState.practice.idx = 0;
-    idx = deckState[mode].idx;
-    missedWords = new Set(deckState[mode].missed);
-  } else {
-    dailyDeck = shuffle([...DAILY]); practiceDeck = shuffle([...PRACTICE]);
-    mode = 'daily'; idx = 0; missedWords = new Set();
-    deckState.daily = { idx: 0, missed: new Set() };
-    deckState.practice = { idx: 0, missed: new Set() };
-  }
-  deck = [...(mode === 'daily' ? dailyDeck : practiceDeck)];
-  revealed = false;
-}
 
 function wordCount(arr) { return new Set(arr.map(s => s.w)).size; }
 
@@ -253,15 +221,15 @@ function setMode(m) {
   mode = m;
   deck = [...(mode === 'daily' ? dailyDeck : practiceDeck)];
   idx = deckState[mode].idx;
-  // Bug fix #2: if switching back to a completed deck, restart it
   if (idx >= deck.length) { idx = 0; deckState[mode].idx = 0; }
   missedWords = new Set(deckState[mode].missed);
   revealed = false;
   updateTabs();
   hideDone();
   resetFlagState();
-  if (deck.length === 0) { showEmpty(); }
-  else {
+  if (deck.length === 0) {
+    showEmpty();
+  } else {
     hideEmpty();
     document.getElementById('cardWrap').classList.remove('hide');
     document.getElementById('keyHint').style.display = '';
@@ -293,15 +261,14 @@ function bold(str) { return str.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
 
 function render() {
   const s = deck[idx];
-  if (!s) return; // safety guard
+  if (!s) return;
   document.getElementById('bar').style.width = (idx / deck.length * 100).toFixed(1) + '%';
   document.getElementById('counter').textContent = (idx + 1) + ' / ' + deck.length;
   document.getElementById('meta').textContent = wordCount(deck) + ' words';
   const wl = document.getElementById('wordLabel');
   wl.textContent = s.w; wl.classList.remove('missed-flash');
-  // Bug fix #3: show infinitive for verb cards
   const infEl = document.getElementById('infinitiveEl');
-  if (infEl) infEl.textContent = s.inf ? s.inf : '';
+  infEl.textContent = s.inf ? s.inf : '';
   document.getElementById('spanishEl').innerHTML = bold(s.s);
   const tr = document.getElementById('translationEl');
   tr.textContent = s.e; tr.classList.remove('show');
@@ -351,10 +318,12 @@ function showDone() {
 
 function doRestart(doShuffle) {
   const src = mode === 'daily' ? dailyDeck : practiceDeck;
-  deck = doShuffle ? shuffle([...src]) : [...src];
+  deck = shuffle([...src]);
   idx = 0; revealed = false; missedWords = new Set();
   deckState[mode] = { idx: 0, missed: new Set() };
-  clearState(); hideDone(); resetFlagState();
+  clearState();
+  hideDone();
+  resetFlagState();
   document.getElementById('cardWrap').classList.remove('hide');
   document.getElementById('keyHint').style.display = '';
   document.getElementById('actionBtns').classList.remove('show');
@@ -390,6 +359,32 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Tab') { e.preventDefault(); setMode(mode === 'daily' ? 'practice' : 'daily'); }
 });
 
+async function init() {
+  const saved = await loadState();
+  if (saved) {
+    dailyDeck = saved.daily; practiceDeck = saved.practice;
+    if (saved.deckState) {
+      deckState.daily.idx = saved.deckState.daily.idx || 0;
+      deckState.daily.missed = new Set(saved.deckState.daily.missed || []);
+      deckState.practice.idx = saved.deckState.practice.idx || 0;
+      deckState.practice.missed = new Set(saved.deckState.practice.missed || []);
+    } else {
+      deckState[saved.mode || 'daily'].idx = saved.idx || 0;
+      deckState[saved.mode || 'daily'].missed = new Set(saved.missed || []);
+    }
+    mode = (saved.mode === 'practice' && practiceDeck.length === 0) ? 'daily' : (saved.mode || 'daily');
+    if (deckState.daily.idx >= dailyDeck.length && dailyDeck.length > 0) deckState.daily.idx = 0;
+    if (deckState.practice.idx >= practiceDeck.length && practiceDeck.length > 0) deckState.practice.idx = 0;
+    idx = deckState[mode].idx; missedWords = new Set(deckState[mode].missed);
+  } else {
+    dailyDeck = shuffle([...DAILY]); practiceDeck = shuffle([...PRACTICE]);
+    mode = 'daily'; idx = 0; missedWords = new Set();
+    deckState.daily = { idx: 0, missed: new Set() };
+    deckState.practice = { idx: 0, missed: new Set() };
+  }
+  deck = [...(mode === 'daily' ? dailyDeck : practiceDeck)];
+  revealed = false;
+}
 init().then(() => { updateTabs(); if (deck.length > 0) render(); else showEmpty(); });
 
 if ('serviceWorker' in navigator) {
