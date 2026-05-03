@@ -294,7 +294,7 @@ function handleAction(wasMissed) {
   setTimeout(() => {
     idx++;
     deckState[mode].idx = idx;
-    if (idx >= deck.length) { clearState(); showDone(); } else render();
+    if (idx >= deck.length) { clearState(); showDone(); } else { render(); saveState(); }
   }, wasMissed ? 350 : 120);
 }
 
