@@ -145,6 +145,7 @@
   <div class="done-btns">
     <button class="btn btn-again" onclick="doRestart(false)">Go again</button>
     <button class="btn btn-shuffle" onclick="doRestart(true)">Shuffle</button>
+    <button class="btn btn-reset" onclick="_startFresh()" style="background:rgba(148,163,184,0.07);border:1px solid rgba(148,163,184,0.15);color:rgba(255,255,255,0.25);font-size:11px;padding:6px 14px;" title="Clear saved state and restart">Reset</button>
   </div>
 </div>
 
@@ -174,6 +175,7 @@ async function getVault() {
   return _vault;
 }
 async function saveState() {
+  if (mode === undefined || !deckState[mode]) return; // guard: init not yet complete
   deckState[mode].idx = idx;
   deckState[mode].missed = new Set(missedWords);
   const state = { fp: fp(), daily: dailyDeck, practice: practiceDeck, grammar: grammarDeck, mode,
@@ -564,7 +566,19 @@ async function init() {
   document.body.classList.toggle('grammar-mode', mode === 'grammar');
   revealed = false;
 }
-init().then(() => { updateTabs(); if (deck.length > 0) render(); else showEmpty(); });
+function _startFresh() {
+  try { localStorage.removeItem(STATE_KEY); } catch(e) {}
+  dailyDeck = shuffle([...DAILY]); practiceDeck = shuffle([...PRACTICE]); grammarDeck = shuffle([...GRAMMAR]);
+  mode = 'daily'; idx = 0; missedWords = new Set();
+  deckState.daily = { idx: 0, missed: new Set() };
+  deckState.practice = { idx: 0, missed: new Set() };
+  deckState.grammar = { idx: 0, missed: new Set(), pointResults: {} };
+  deck = [...dailyDeck];
+  updateTabs();
+  if (deck.length > 0) render(); else showEmpty();
+}
+init().then(() => { updateTabs(); if (deck.length > 0) render(); else showEmpty(); })
+  .catch(() => _startFresh());
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
