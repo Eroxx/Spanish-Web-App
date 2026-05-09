@@ -475,14 +475,31 @@ function saveGrammarResults() {
   if (results.length === 0) return;
   const today = new Date().toISOString().slice(0, 10);
   const session = { date: today, results };
-  const filePath = '_05 Donkey Work/_System/Robot Folders/Temp Donkey Files/grammar-drill-results.jsonl';
   const data = JSON.stringify(session) + '\n';
-  const url = 'obsidian://advanced-uri'
-    + '?vault=' + encodeURIComponent('Main Brain')
-    + '&filepath=' + encodeURIComponent(filePath)
-    + '&data=' + encodeURIComponent(data)
-    + '&mode=append';
-  window.open(url);
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  if (isIOS) {
+    // On iOS: share the file so Eric can Save to Files → iCloud Drive → Spanish Practice
+    const blob = new Blob([data], { type: 'text/plain' });
+    const file = new File([blob], 'grammar-drill-results.jsonl', { type: 'text/plain' });
+    if (navigator.share && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: 'Grammar Drill Results' })
+        .catch(console.error);
+    } else {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'grammar-drill-results.jsonl'; a.click();
+      URL.revokeObjectURL(url);
+    }
+  } else {
+    // On Mac: write directly to vault via Advanced URI plugin
+    const filePath = '_05 Donkey Work/_System/Robot Folders/Temp Donkey Files/grammar-drill-results.jsonl';
+    const url = 'obsidian://advanced-uri'
+      + '?vault=' + encodeURIComponent('Main Brain')
+      + '&filepath=' + encodeURIComponent(filePath)
+      + '&data=' + encodeURIComponent(data)
+      + '&mode=append';
+    window.open(url);
+  }
   document.getElementById('saveBtn').disabled = true;
   document.getElementById('saveBtn').textContent = 'Saved ✓';
   setTimeout(() => document.getElementById('saveConfirm').classList.add('show'), 300);
