@@ -33,6 +33,7 @@
   body.grammar-mode .done-check { background: rgba(74,222,128,0.12); border-color: rgba(74,222,128,0.3); color: #4ade80; }
   .cloze-blank { display: inline-block; min-width: 80px; border-bottom: 2px solid rgba(74,222,128,0.55); padding: 0 8px 2px; margin: 0 2px; color: transparent; }
   .grammar-point-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.8px; color: #4ade80; opacity: 0.75; margin-bottom: 6px; font-weight: 600; }
+  .grammar-prompt { font-size: 15px; color: rgba(255,255,255,0.82); font-style: italic; margin-bottom: 16px; text-align: center; min-height: 1.3em; }
   .breakdown { margin-top: 14px; width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 6px; }
   .breakdown-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background: rgba(74,222,128,0.06); border: 1px solid rgba(74,222,128,0.18); border-radius: 8px; font-size: 13px; }
   .breakdown-row .bd-name { color: rgba(255,255,255,0.7); flex: 1; text-align: left; padding-right: 8px; }
@@ -106,6 +107,7 @@
 
 <div class="card-wrap" id="cardWrap">
   <div class="grammar-point-label" id="grammarPointLabel" style="display:none"></div>
+  <div class="grammar-prompt" id="grammarPromptEl" style="display:none"></div>
   <div class="word-label" id="wordLabel"></div>
   <div class="infinitive-label" id="infinitiveEl"></div>
   <div class="spanish" id="spanishEl"></div>
@@ -341,6 +343,33 @@ function resetSaveState() {
 
 function bold(str) { return str.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); }
 
+// Per-gid prompts: override with s.prompt if present on the card
+const GRAMMAR_PROMPTS = {
+  'a1-01': 'Conjugate the -ar verb (hint in parentheses)',
+  'a1-02': 'Conjugate the -er/-ir verb (hint in parentheses)',
+  'a1-03': 'Conjugate the irregular verb (hint in parentheses)',
+  'a1-04': 'ser or estar?',
+  'a1-05': 'el, la, un, or una?',
+  'a1-06': 'Agree the adjective (form in parentheses)',
+  'a1-07': 'What subject pronoun fits the verb ending?',
+  'a1-12': 'Fill in: pronoun + gusta/gustan',
+  'a1-14': 'Conjugate the reflexive verb (hint in parentheses)',
+  'a1-15': 'Fill in the preposition',
+  'a1-16': 'Fill in the time word',
+  'a1-17': 'antes de or después de?',
+  'a2-01': 'Conjugate using ir a + infinitive',
+  'a2-02': 'Fill in the possessive',
+  'a2-03': 'este, esta, estos, estas, or esto?',
+  'a2-04': 'Fill in: tener que / hay que / deber',
+  'a2-05': 'más or menos?',
+  'a2-06': 'Conjugate in the preterite',
+  'a2-07': 'mejor, peor, mayor, or menor?',
+  'a2-08': 'What pronoun replaces the object?',
+  'a2-09': 'Fill in the indirect object pronoun',
+  'a2-10': 'Fill in: por or para?',
+};
+function getGrammarPrompt(s) { return s.prompt || GRAMMAR_PROMPTS[s.gid] || s.gname; }
+
 function render() {
   const s = deck[idx];
   if (!s) return; // safety guard — idx out of bounds
@@ -354,6 +383,9 @@ function render() {
     document.getElementById('meta').textContent = gidCount(deck) + ' points';
     gpl.textContent = s.gid + ' · ' + s.gname;
     gpl.style.display = '';
+    const pe = document.getElementById('grammarPromptEl');
+    pe.textContent = getGrammarPrompt(s);
+    pe.style.display = '';
     // Pre-reveal: empty word-label (don't spoil the answer). Reveal() fills it as feedback.
     wl.textContent = '';
     infEl.textContent = '';
@@ -362,6 +394,7 @@ function render() {
   } else {
     document.getElementById('meta').textContent = wordCount(deck) + ' words';
     gpl.style.display = 'none';
+    document.getElementById('grammarPromptEl').style.display = 'none';
     wl.textContent = s.w;
     infEl.textContent = s.inf ? s.inf : '';
     document.getElementById('spanishEl').innerHTML = bold(s.s);
