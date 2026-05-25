@@ -227,6 +227,7 @@ const deckState = {
   grammar: { idx: 0, missed: new Set(), pointResults: {} }
 };
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveState(); });
+window.addEventListener('pagehide', saveState);
 
 function wordCount(arr) { return new Set(arr.map(s => s.w)).size; }
 function gidCount(arr) { return new Set(arr.map(s => s.gid)).size; }
@@ -297,6 +298,7 @@ function setMode(m) {
     document.getElementById('keyHint').style.display = '';
     document.getElementById('actionBtns').classList.remove('show');
     render();
+    saveState();
   }
 }
 
