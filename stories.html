@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spanish Stories</title>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #0f172a; color: #e2e8f0;
+  min-height: 100vh; padding: 64px 24px 100px;
+}
+.progress-track { position: fixed; top: 0; left: 0; right: 0; height: 3px; background: rgba(255,255,255,0.07); z-index: 20; }
+.progress-fill { height: 100%; background: #a78bfa; transition: width 0.4s ease; }
+.top-bar {
+  position: fixed; top: 9px; left: 0; right: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.story-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: rgba(255,255,255,0.15); transition: background 0.2s;
+}
+.story-dot.active { background: #a78bfa; }
+.story-dot.done { background: rgba(167,139,250,0.35); }
+.phase-label {
+  position: fixed; top: 36px; left: 50%; transform: translateX(-50%);
+  font-size: 10px; text-transform: uppercase; letter-spacing: 2px;
+  color: rgba(255,255,255,0.22); white-space: nowrap; z-index: 10;
+}
+.container { max-width: 660px; margin: 0 auto; }
+
+/* Story header */
+.story-header { margin-bottom: 26px; }
+.badges { display: flex; gap: 7px; margin-bottom: 10px; }
+.badge {
+  display: inline-block; padding: 2px 9px; border-radius: 12px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
+}
+.badge-level { background: rgba(167,139,250,0.15); color: #a78bfa; border: 1px solid rgba(167,139,250,0.3); }
+.badge-dir { background: rgba(148,163,184,0.08); color: rgba(255,255,255,0.3); border: 1px solid rgba(255,255,255,0.1); }
+.story-title { font-size: 22px; font-weight: 600; color: #f1f5f9; line-height: 1.3; }
+
+/* Attempt phase */
+.attempt-prompt { font-size: 14px; color: rgba(255,255,255,0.4); margin-bottom: 18px; line-height: 1.65; }
+.attempt-prompt strong { color: rgba(255,255,255,0.6); }
+.word-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 20px; }
+.word-chip {
+  padding: 5px 13px; border-radius: 20px;
+  background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.28);
+  color: #a78bfa; font-size: 13px; font-weight: 500;
+}
+
+/* Textarea */
+textarea {
+  width: 100%; border-radius: 12px;
+  background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.1);
+  color: #e2e8f0; font-family: inherit; font-size: 16px; line-height: 1.75;
+  padding: 16px; resize: vertical; min-height: 140px;
+  transition: border-color 0.2s;
+}
+textarea:focus { outline: none; border-color: rgba(167,139,250,0.5); }
+textarea::placeholder { color: rgba(255,255,255,0.18); }
+
+/* Story body */
+.story-body { font-size: 17px; line-height: 1.9; color: #cbd5e1; margin-bottom: 22px; }
+.story-body p { margin-bottom: 1em; }
+.story-body p:last-child { margin-bottom: 0; }
+.story-body strong { color: #a78bfa; font-weight: 600; }
+
+/* Vocab */
+.vocab-toggle {
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+  color: rgba(255,255,255,0.28); margin-bottom: 10px; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.vocab-toggle:hover { color: rgba(255,255,255,0.45); }
+.vocab-list { display: none; margin-bottom: 20px; border-radius: 10px; overflow: hidden; }
+.vocab-list.open { display: block; }
+.vocab-item {
+  display: flex; gap: 0; padding: 7px 12px;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px;
+}
+.vocab-item:last-child { border-bottom: none; }
+.vocab-term { color: #a78bfa; min-width: 160px; flex-shrink: 0; }
+.vocab-def { color: rgba(255,255,255,0.45); }
+
+/* Section divider */
+hr.divider { border: none; border-top: 1px solid rgba(255,255,255,0.07); margin: 22px 0; }
+.section-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 2px;
+  color: rgba(255,255,255,0.28); margin-bottom: 12px;
+}
+
+/* Difficulty picker */
+.diff-header { text-align: center; margin-bottom: 32px; padding-top: 24px; }
+.diff-title { font-size: 20px; font-weight: 500; color: #f1f5f9; margin-bottom: 6px; }
+.diff-subtitle { font-size: 13px; color: rgba(255,255,255,0.3); }
+.diff-question { font-size: 17px; color: rgba(255,255,255,0.65); text-align: center; margin-bottom: 24px; }
+.diff-grid {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+  max-width: 360px; margin: 0 auto 32px;
+}
+.diff-btn {
+  padding: 18px 8px; border-radius: 10px; font-size: 18px; font-weight: 600;
+  cursor: pointer; border: 1.5px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.4);
+  transition: all 0.15s; -webkit-tap-highlight-color: transparent;
+}
+.diff-btn:hover { background: rgba(167,139,250,0.12); border-color: rgba(167,139,250,0.35); color: #a78bfa; }
+.diff-btn.selected { background: rgba(167,139,250,0.18); border-color: #a78bfa; color: #a78bfa; }
+.diff-scale { display: flex; justify-content: space-between; max-width: 360px; margin: -20px auto 28px; }
+.diff-scale span { font-size: 10px; color: rgba(255,255,255,0.2); letter-spacing: 0.5px; }
+
+/* Buttons */
+.btn-row { display: flex; gap: 10px; margin-top: 22px; justify-content: flex-end; align-items: center; }
+.btn-row-center { display: flex; gap: 10px; margin-top: 16px; justify-content: center; flex-wrap: wrap; }
+.btn {
+  padding: 12px 24px; border-radius: 10px; font-size: 15px; font-weight: 600;
+  cursor: pointer; border: 1.5px solid; transition: background 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: rgba(167,139,250,0.15); border-color: rgba(167,139,250,0.4); color: #a78bfa; }
+.btn-primary:hover { background: rgba(167,139,250,0.24); }
+.btn-primary:disabled { opacity: 0.35; cursor: default; transform: none; }
+.btn-ghost { background: transparent; border-color: rgba(255,255,255,0.1); color: rgba(255,255,255,0.32); }
+.btn-ghost:hover { color: rgba(255,255,255,0.52); border-color: rgba(255,255,255,0.2); }
+.submit-confirm {
+  font-size: 12px; color: #4ade80; opacity: 0; transition: opacity 0.3s;
+  text-align: center; margin-top: 10px;
+}
+.submit-confirm.show { opacity: 1; }
+
+/* Phase containers */
+.phase { display: none; }
+.phase.active { display: block; }
+
+/* Done screen */
+.done-screen { display: none; flex-direction: column; align-items: center; text-align: center; gap: 14px; padding-top: 48px; }
+.done-screen.show { display: flex; }
+.done-check {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: rgba(167,139,250,0.12); border: 1.5px solid rgba(167,139,250,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; color: #a78bfa;
+}
+.done-title { font-size: 22px; font-weight: 600; color: #f1f5f9; }
+.done-sub { font-size: 14px; color: rgba(255,255,255,0.35); line-height: 1.7; max-width: 340px; }
+
+/* Empty state */
+.empty-screen { display: none; flex-direction: column; align-items: center; text-align: center; gap: 12px; padding-top: 80px; }
+.empty-screen.show { display: flex; }
+.empty-title { font-size: 18px; font-weight: 500; color: rgba(255,255,255,0.35); }
+.empty-body { font-size: 13px; color: rgba(255,255,255,0.22); line-height: 1.7; max-width: 300px; }
+</style>
+</head>
+<body>
+
+<div class="progress-track"><div class="progress-fill" id="progressBar"></div></div>
+<div class="top-bar" id="topBar"></div>
+<div class="phase-label" id="phaseLabel"></div>
+
+<div class="container">
+
+  <!-- Attempt phase -->
+  <div class="phase" id="phaseAttempt">
+    <div class="story-header">
+      <div class="badges" id="attemptBadges"></div>
+      <div class="story-title" id="attemptTitle"></div>
+    </div>
+    <div class="attempt-prompt" id="attemptPrompt"></div>
+    <div class="word-chips" id="wordChips"></div>
+    <textarea id="attemptText" placeholder="Write a few sentences using the words above — before you read the story."></textarea>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="skipAttempt()">Skip</button>
+      <button class="btn btn-primary" onclick="goToTranslate()">Read Story →</button>
+    </div>
+  </div>
+
+  <!-- Read + Translate phase -->
+  <div class="phase" id="phaseTranslate">
+    <div class="story-header">
+      <div class="badges" id="translateBadges"></div>
+      <div class="story-title" id="translateTitle"></div>
+    </div>
+    <div class="story-body" id="storyBody"></div>
+    <div class="vocab-toggle" onclick="toggleVocab()">
+      <span id="vocabArrow">▶</span> Vocabulary hints
+    </div>
+    <div class="vocab-list" id="vocabList"></div>
+    <hr class="divider">
+    <div class="section-label" id="translateLabel"></div>
+    <textarea id="translateText" placeholder="Your translation..."></textarea>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goToRate()">Continue →</button>
+    </div>
+  </div>
+
+  <!-- Difficulty / submit phase -->
+  <div class="phase" id="phaseRate">
+    <div class="diff-header">
+      <div class="diff-title" id="rateTitle"></div>
+      <div class="diff-subtitle" id="rateSubtitle"></div>
+    </div>
+    <div class="diff-question" id="diffQuestion"></div>
+    <div class="diff-grid" id="diffGrid"></div>
+    <div class="diff-scale">
+      <span>easy</span>
+      <span>brutal</span>
+    </div>
+    <div class="btn-row-center">
+      <button class="btn btn-primary" id="submitBtn" onclick="submitStory()" disabled>Submit</button>
+    </div>
+    <div class="submit-confirm" id="submitConfirm">Saved to vault ✓ — opening Obsidian...</div>
+  </div>
+
+  <!-- Story submitted interstitial (shown briefly before moving to next) -->
+  <div class="phase" id="phaseInterstitial">
+    <div style="text-align:center; padding-top: 60px; display:flex; flex-direction:column; align-items:center; gap:16px;">
+      <div class="done-check">✓</div>
+      <div class="done-title" id="interstitialTitle"></div>
+      <div class="done-sub" id="interstitialSub"></div>
+      <button class="btn btn-primary" style="margin-top:8px;" id="nextStoryBtn" onclick="goToNextStory()"></button>
+    </div>
+  </div>
+
+  <!-- All done -->
+  <div class="done-screen" id="doneScreen">
+    <div class="done-check">✓</div>
+    <div class="done-title">All done</div>
+    <div class="done-sub">Both stories submitted.<br>Say "grade my Spanish" to get feedback.</div>
+    <button class="btn btn-ghost" style="margin-top:12px;" onclick="resetAll()">Start over</button>
+  </div>
+
+  <!-- Empty state (no stories generated yet) -->
+  <div class="empty-screen" id="emptyScreen">
+    <div class="empty-title">No stories today</div>
+    <div class="empty-body">Say "generate Spanish stories" in Cowork to create today's practice stories.</div>
+  </div>
+
+</div>
+
+<script>
+const STORIES = [{"id": "2026-05-25-01", "title": "A Comfortable Morning", "format": "full", "level": "A1", "attempt_words": ["despertarse", "agradable", "cómodo", "la carta", "llevar", "la hoja", "fuerte"], "body": "David **woke up** early on Monday. The morning air was **pleasant** — soft and cool, with the smell of earth and flowers. He walked slowly through the garden before Rosa arrived. He sat on the wooden bench near the roses. The bench was **comfortable**, worn smooth by many years of use.\n\nHe had the **letter** in his pocket — the one from the unknown neighbor. He **carried** it carefully, folded once.\n\nRosa arrived as the sun was beginning to rise. She was already picking **leaves** from the tomato plants — pulling the yellowed ones away with **strong**, practiced hands.\n\n\"You're here early,\" she said.\n\n\"I **woke up** thinking about the letter,\" David said. He took it out and held it toward her.\n\nRosa set down the **leaves**. She read slowly, without speaking.\n\n\"She has been watching this garden for a long time,\" Rosa said. \"She wants to come someday.\"\n\nDavid looked around — the **pleasant** morning air, the **comfortable** bench, the green rows of plants. He felt glad he had come early.\n\n\"Tell her the gate is open,\" he said.", "vocab": [{"term": "to wake up", "def": "despertarse"}, {"term": "pleasant", "def": "agradable"}, {"term": "comfortable", "def": "cómodo (m.) / cómoda (f.)"}, {"term": "the letter", "def": "la carta"}, {"term": "to carry", "def": "llevar"}, {"term": "leaves", "def": "las hojas"}, {"term": "strong", "def": "fuerte"}], "difficulty_question": "How hard did this one feel?"}, {"id": "2026-05-25-02", "title": "La Cena de Carmen", "format": "paragraph", "level": "A1", "attempt_words": ["el hogar", "amable", "mejor", "pequeño", "orgulloso", "descubrir", "la cena"], "body": "Carmen **se sentía orgullosa** de su pequeño jardín. Era un lugar que había cuidado durante seis años, y todavía había cosas que **descubrir** en él.\n\nEn la tarde del lunes, preparó la **cena** — tomates frescos del jardín, pan, y aceite de oliva. Puso la mesa pequeña en el patio, entre los árboles.\n\nLlegó Rosa primero. Era **amable** como siempre, y llevaba flores del jardín en la mano. David llegó después, con su cuaderno bajo el brazo. Le dijo a Carmen que el jardín era **mejor** de lo que esperaba al principio.\n\n\"Es **mejor** comer juntos,\" dijo Carmen. \"Este es mi **hogar**, y quiero que también sea el **hogar** de ustedes.\"\n\nLos tres se sentaron. El sol ya no era tan fuerte, y el aire era fresco. El patio era pequeño, pero en ese momento, era el **mejor** lugar de la ciudad.\n\n\"¿**Descubriste** algo nuevo hoy?\" le preguntó Rosa a David.\n\nDavid pensó un momento. \"**Descubrí** que las plantas tienen más paciencia que yo,\" dijo.\n\nLos tres se rieron. Carmen **se sintió orgullosa** — y en casa.", "vocab": [{"term": "el hogar", "def": "home"}, {"term": "amable", "def": "kind"}, {"term": "mejor", "def": "better"}, {"term": "pequeño", "def": "small (m.) / pequeña = small (f.)"}, {"term": "orgulloso", "def": "proud (m.) / orgullosa = proud (f.)"}, {"term": "descubrir", "def": "to discover"}, {"term": "la cena", "def": "dinner"}], "difficulty_question": "How hard did this one feel?"}];
+const VAULT = 'Main Brain';
+const STATE_KEY = 'spanish-stories-state';
+
+function fp() { return STORIES.map(s => s.id).join('|'); }
+
+let state = {
+  fp: fp(),
+  storyIdx: 0,
+  phase: 'attempt',       // attempt | translate | rate | interstitial
+  attempts: STORIES.map(() => ''),
+  translations: STORIES.map(() => ''),
+  difficulties: STORIES.map(() => null),
+  submitted: STORIES.map(() => false),
+  vocabOpen: false
+};
+
+function saveState() {
+  try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+function loadState() {
+  try {
+    const s = JSON.parse(localStorage.getItem(STATE_KEY));
+    if (s && s.fp === fp()) return s;
+  } catch(e) {}
+  return null;
+}
+function clearState() {
+  try { localStorage.removeItem(STATE_KEY); } catch(e) {}
+}
+
+// --- Progress + chrome ---
+
+function updateChrome() {
+  // Progress bar: each story has 3 phases (attempt=0, translate=1, rate=2)
+  const phaseNum = { attempt: 0, translate: 1, rate: 2, interstitial: 3 };
+  let progress = 0;
+  for (let i = 0; i < STORIES.length; i++) {
+    if (state.submitted[i]) { progress += 3; }
+    else if (i === state.storyIdx) { progress += (phaseNum[state.phase] || 0); }
+  }
+  const pct = STORIES.length > 0 ? Math.min(100, progress / (STORIES.length * 3) * 100) : 0;
+  document.getElementById('progressBar').style.width = pct.toFixed(1) + '%';
+
+  // Dots
+  const topBar = document.getElementById('topBar');
+  topBar.innerHTML = STORIES.map((_, i) => {
+    let cls = 'story-dot';
+    if (state.submitted[i]) cls += ' done';
+    else if (i === state.storyIdx) cls += ' active';
+    return `<div class="${cls}"></div>`;
+  }).join('');
+
+  // Phase label
+  const phaseLabels = { attempt: 'Attempt', translate: 'Read & Translate', rate: 'Rate difficulty', interstitial: '' };
+  const storyStr = STORIES.length > 1 ? `Story ${state.storyIdx + 1} of ${STORIES.length}` : 'Story';
+  const phasePart = phaseLabels[state.phase] || '';
+  document.getElementById('phaseLabel').textContent = phasePart ? `${storyStr} · ${phasePart}` : storyStr;
+}
+
+// --- Helpers ---
+
+function bold(str) {
+  return str.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+}
+function bodyHtml(body) {
+  return body.split(/\n\n+/).map(p => p.trim()).filter(Boolean)
+    .map(p => '<p>' + bold(p.replace(/\n/g, '<br>')) + '</p>').join('');
+}
+function dirLabel(story) {
+  return story.format === 'full' ? 'English → Spanish' : 'Spanish → English';
+}
+function renderBadges(containerId, story) {
+  document.getElementById(containerId).innerHTML =
+    `<span class="badge badge-level">${story.level}</span>` +
+    `<span class="badge badge-dir">${dirLabel(story)}</span>`;
+}
+
+// --- Phase: Attempt ---
+
+function renderAttempt() {
+  const story = STORIES[state.storyIdx];
+  renderBadges('attemptBadges', story);
+  document.getElementById('attemptTitle').textContent = story.title;
+
+  const langTarget = story.format === 'full' ? '<strong>Spanish</strong>' : '<strong>English</strong>';
+  document.getElementById('attemptPrompt').innerHTML =
+    `Before reading: write a few sentences in ${langTarget} using the words below. Don't peek — just try.`;
+
+  document.getElementById('wordChips').innerHTML =
+    story.attempt_words.map(w => `<span class="word-chip">${w}</span>`).join('');
+
+  document.getElementById('attemptText').value = state.attempts[state.storyIdx] || '';
+  showPhase('phaseAttempt');
+}
+
+function skipAttempt() {
+  state.attempts[state.storyIdx] = '';
+  state.phase = 'translate';
+  saveState();
+  renderTranslate();
+}
+function goToTranslate() {
+  state.attempts[state.storyIdx] = document.getElementById('attemptText').value;
+  state.phase = 'translate';
+  saveState();
+  renderTranslate();
+}
+
+// --- Phase: Read + Translate ---
+
+function renderTranslate() {
+  const story = STORIES[state.storyIdx];
+  renderBadges('translateBadges', story);
+  document.getElementById('translateTitle').textContent = story.title;
+  document.getElementById('storyBody').innerHTML = bodyHtml(story.body);
+
+  // Vocab
+  const vocabEl = document.getElementById('vocabList');
+  vocabEl.innerHTML = story.vocab.map(v =>
+    `<div class="vocab-item"><span class="vocab-term">${v.term}</span><span class="vocab-def">${v.def}</span></div>`
+  ).join('');
+  vocabEl.classList.toggle('open', !!state.vocabOpen);
+  document.getElementById('vocabArrow').textContent = state.vocabOpen ? '▼' : '▶';
+
+  const tlLabel = story.format === 'full' ? 'Your Spanish translation' : 'Your English translation';
+  document.getElementById('translateLabel').textContent = tlLabel;
+  document.getElementById('translateText').value = state.translations[state.storyIdx] || '';
+  document.getElementById('translateText').placeholder =
+    story.format === 'full' ? 'Translate the full story into Spanish...' : 'Translate the full story into English...';
+
+  showPhase('phaseTranslate');
+  // Small delay so scroll to top doesn't fight the phase reveal
+  setTimeout(() => { window.scrollTo(0, 0); }, 10);
+}
+
+function toggleVocab() {
+  state.vocabOpen = !state.vocabOpen;
+  document.getElementById('vocabList').classList.toggle('open', state.vocabOpen);
+  document.getElementById('vocabArrow').textContent = state.vocabOpen ? '▼' : '▶';
+  saveState();
+}
+function goToRate() {
+  state.translations[state.storyIdx] = document.getElementById('translateText').value.trim();
+  state.phase = 'rate';
+  saveState();
+  renderRate();
+}
+
+// --- Phase: Rate + Submit ---
+
+function renderRate() {
+  const story = STORIES[state.storyIdx];
+  document.getElementById('rateTitle').textContent = story.title;
+  document.getElementById('rateSubtitle').textContent =
+    STORIES.length > 1 ? `Story ${state.storyIdx + 1} of ${STORIES.length}` : '';
+  document.getElementById('diffQuestion').textContent =
+    story.difficulty_question || 'How hard did this feel?';
+
+  const cur = state.difficulties[state.storyIdx];
+  document.getElementById('diffGrid').innerHTML = Array.from({length: 10}, (_, i) => i + 1).map(n =>
+    `<button class="diff-btn${cur === n ? ' selected' : ''}" onclick="selectDiff(${n})">${n}</button>`
+  ).join('');
+
+  document.getElementById('submitBtn').disabled = cur === null;
+  document.getElementById('submitConfirm').classList.remove('show');
+  showPhase('phaseRate');
+  window.scrollTo(0, 0);
+}
+
+function selectDiff(n) {
+  state.difficulties[state.storyIdx] = n;
+  document.querySelectorAll('.diff-btn').forEach((btn, i) => {
+    btn.classList.toggle('selected', i + 1 === n);
+  });
+  document.getElementById('submitBtn').disabled = false;
+  saveState();
+}
+
+function submitStory() {
+  const story = STORIES[state.storyIdx];
+  const attempt = (state.attempts[state.storyIdx] || '').trim();
+  const translation = (state.translations[state.storyIdx] || '').trim();
+  const difficulty = state.difficulties[state.storyIdx];
+  const now = new Date().toISOString();
+
+  const attemptSection = attempt
+    ? `## My Attempt\n\n${attempt}\n\n`
+    : '';
+
+  const content = `---\nstory_id: ${story.id}\nsubmitted: ${now}\ndifficulty: ${difficulty}\n---\n\n${attemptSection}## My Translation\n\n${translation}\n`;
+
+  const filePath = `_05 Donkey Work/_System/Robot Folders/Spanish/Submissions/${story.id}.md`;
+  const url = 'obsidian://advanced-uri'
+    + '?vault=' + encodeURIComponent(VAULT)
+    + '&filepath=' + encodeURIComponent(filePath)
+    + '&data=' + encodeURIComponent(content)
+    + '&mode=new';
+
+  window.open(url);
+
+  state.submitted[state.storyIdx] = true;
+  saveState();
+
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('submitConfirm').classList.add('show');
+
+  setTimeout(() => {
+    state.phase = 'interstitial';
+    saveState();
+    renderInterstitial();
+  }, 1400);
+}
+
+// --- Interstitial (between stories or before done) ---
+
+function renderInterstitial() {
+  const nextIdx = state.submitted.findIndex(s => !s);
+  document.getElementById('interstitialTitle').textContent =
+    `Story ${state.storyIdx + 1} submitted ✓`;
+
+  if (nextIdx === -1) {
+    // All done
+    document.getElementById('interstitialSub').textContent = 'Both stories submitted.';
+    document.getElementById('nextStoryBtn').textContent = 'See summary →';
+    document.getElementById('nextStoryBtn').onclick = showAllDone;
+  } else {
+    document.getElementById('interstitialSub').textContent =
+      `Story ${nextIdx + 1}: ${STORIES[nextIdx].title}`;
+    document.getElementById('nextStoryBtn').textContent = `Start story ${nextIdx + 1} →`;
+    document.getElementById('nextStoryBtn').onclick = goToNextStory;
+  }
+  showPhase('phaseInterstitial');
+  window.scrollTo(0, 0);
+}
+
+function goToNextStory() {
+  const nextIdx = state.submitted.findIndex(s => !s);
+  if (nextIdx === -1) { showAllDone(); return; }
+  state.storyIdx = nextIdx;
+  state.phase = 'attempt';
+  saveState();
+  renderAttempt();
+}
+
+function showAllDone() {
+  clearState();
+  document.getElementById('progressBar').style.width = '100%';
+  document.getElementById('topBar').innerHTML = STORIES.map(() =>
+    '<div class="story-dot done"></div>').join('');
+  document.getElementById('phaseLabel').textContent = 'All done';
+  ['phaseAttempt','phaseTranslate','phaseRate','phaseInterstitial'].forEach(id => {
+    document.getElementById(id).classList.remove('active');
+  });
+  document.getElementById('doneScreen').classList.add('show');
+  window.scrollTo(0, 0);
+}
+
+function resetAll() {
+  clearState();
+  state = {
+    fp: fp(), storyIdx: 0, phase: 'attempt',
+    attempts: STORIES.map(() => ''),
+    translations: STORIES.map(() => ''),
+    difficulties: STORIES.map(() => null),
+    submitted: STORIES.map(() => false),
+    vocabOpen: false
+  };
+  renderAttempt();
+}
+
+// --- Phase switcher ---
+
+function showPhase(id) {
+  ['phaseAttempt','phaseTranslate','phaseRate','phaseInterstitial','doneScreen','emptyScreen'].forEach(p => {
+    const el = document.getElementById(p);
+    if (el) { el.classList.remove('active', 'show'); }
+  });
+  const target = document.getElementById(id);
+  if (target) {
+    if (id === 'doneScreen' || id === 'emptyScreen') target.classList.add('show');
+    else target.classList.add('active');
+  }
+  updateChrome();
+}
+
+// --- Auto-save textarea input ---
+
+document.addEventListener('input', e => {
+  if (e.target.id === 'attemptText') {
+    state.attempts[state.storyIdx] = e.target.value;
+    saveState();
+  } else if (e.target.id === 'translateText') {
+    state.translations[state.storyIdx] = e.target.value;
+    saveState();
+  }
+});
+
+// Save on page hide (tab switch, close)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') saveState();
+});
+
+// --- Init ---
+
+function init() {
+  if (!STORIES || STORIES.length === 0) {
+    document.getElementById('emptyScreen').classList.add('show');
+    document.getElementById('progressBar').style.width = '0%';
+    return;
+  }
+
+  const saved = loadState();
+  if (saved) {
+    state = saved;
+    if (state.vocabOpen === undefined) state.vocabOpen = false;
+    // Pad arrays if story count changed
+    while (state.attempts.length < STORIES.length) state.attempts.push('');
+    while (state.translations.length < STORIES.length) state.translations.push('');
+    while (state.difficulties.length < STORIES.length) state.difficulties.push(null);
+    while (state.submitted.length < STORIES.length) state.submitted.push(false);
+  }
+
+  // If all submitted already
+  if (state.submitted.every(Boolean)) { showAllDone(); return; }
+
+  // Find current story
+  const firstUnsubmitted = state.submitted.findIndex(s => !s);
+  if (firstUnsubmitted !== -1 && state.storyIdx !== firstUnsubmitted) {
+    // Edge case: saved storyIdx points to an already-submitted story
+    if (state.submitted[state.storyIdx]) {
+      state.storyIdx = firstUnsubmitted;
+      state.phase = 'attempt';
+    }
+  }
+
+  if (state.phase === 'attempt') renderAttempt();
+  else if (state.phase === 'translate') renderTranslate();
+  else if (state.phase === 'rate') renderRate();
+  else if (state.phase === 'interstitial') renderInterstitial();
+  else renderAttempt();
+}
+
+init();
+</script>
+</body>
+</html>
